@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import Logo from './Logo.jsx'
+import { LogoMark } from './Logo.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import Button from './Button.jsx'
 import { ArrowRightIcon } from './icons.jsx'
@@ -7,25 +7,32 @@ import { ArrowRightIcon } from './icons.jsx'
 const links = [
   { to: '/', label: 'Home', end: true },
   { to: '/buy-data', label: 'Buy Data' },
-  { to: '/history', label: 'History' },
-  { to: '/refer', label: 'Refer' },
-  { to: '/agent', label: 'Become Agent' },
+  { to: '/order-status', label: 'Track Order' },
   { to: '/about', label: 'About' },
 ]
 
+// Desktop-only navbar (md and up). Mobile uses MobileHeader + BottomNav.
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 glass md:block">
-      <nav className="wrap flex h-16 items-center justify-between gap-4">
-        <Logo wordmarkClass="h-6" />
-        <div className="flex items-center gap-1">
+      <nav className="wrap grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4">
+        {/* Left — e-mark + GhEasy wordmark */}
+        <NavLink to="/" className="flex items-center gap-2.5 justify-self-start" aria-label="GhEasy — home">
+          <LogoMark className="h-9 w-9" />
+          <span className="font-display text-xl font-bold tracking-tight text-fg">
+            Gh<span className="text-brand">Easy</span>
+          </span>
+        </NavLink>
+
+        {/* Center — navigation links */}
+        <div className="flex items-center gap-1 justify-self-center">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                `rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+                `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isActive ? 'text-brand' : 'text-muted hover:text-fg'
                 }`
               }
@@ -34,7 +41,9 @@ export default function Navbar() {
             </NavLink>
           ))}
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Right — theme toggle + CTA */}
+        <div className="flex items-center gap-3 justify-self-end">
           <ThemeToggle />
           <Button to="/buy-data" size="sm" iconRight={<ArrowRightIcon className="h-4 w-4" />}>
             Buy Data
