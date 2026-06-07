@@ -7,8 +7,8 @@ const cols = [
     title: 'Product',
     links: [
       { to: '/buy-data', label: 'Buy Data' },
+      { to: '/history', label: 'Order History' },
       { to: '/order-status', label: 'Track an Order' },
-      { to: '/about', label: 'About GhEasy' },
     ],
   },
   {
@@ -20,11 +20,11 @@ const cols = [
     ],
   },
   {
-    title: 'Coming soon',
+    title: 'More',
     links: [
-      { to: '/about', label: 'Airtime top-up' },
-      { to: '/about', label: 'Electricity (ECG)' },
-      { to: '/about', label: 'TV & water bills' },
+      { to: '/refer', label: 'Refer a Friend' },
+      { to: '/agent', label: 'Become an Agent' },
+      { to: '/about', label: 'About easy' },
     ],
   },
 ]
@@ -35,7 +35,7 @@ export default function Footer() {
     <footer className="mt-24 hidden border-t border-border bg-surface md:block">
       <div className="wrap grid grid-cols-2 gap-10 py-16 lg:grid-cols-5">
         <div className="col-span-2 max-w-xs">
-          <Logo />
+          <Logo wordmarkClass="h-7" />
           <p className="mt-4 text-sm leading-relaxed text-muted">
             Pay anything. Anytime. Instant data bundles for every Ghanaian network — no app
             download, no login, no stress.
@@ -61,7 +61,7 @@ export default function Footer() {
 
       <div className="border-t border-border">
         <div className="wrap flex flex-col items-center justify-between gap-3 py-6 text-xs text-muted sm:flex-row">
-          <span>© {year} GhEasy. All rights reserved.</span>
+          <span>© {year} easy. All rights reserved.</span>
           <span className="inline-flex items-center gap-1.5">
             <ShieldIcon className="h-4 w-4 text-brand" />
             Payments secured by Paystack

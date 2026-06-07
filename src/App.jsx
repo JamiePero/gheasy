@@ -8,7 +8,11 @@ import ScrollToTop from './components/ScrollToTop.jsx'
 import RouteTracker from './components/RouteTracker.jsx'
 import Home from './pages/Home.jsx'
 import BuyData from './pages/BuyData.jsx'
+import History from './pages/History.jsx'
 import OrderStatus from './pages/OrderStatus.jsx'
+import Refer from './pages/Refer.jsx'
+import Agent from './pages/Agent.jsx'
+import More from './pages/More.jsx'
 import About from './pages/About.jsx'
 import NotFound from './pages/NotFound.jsx'
 
@@ -20,12 +24,16 @@ export default function App() {
       <RouteTracker />
       <MobileHeader />
       <Navbar />
-      <main className="w-full flex-1 pb-[84px] md:pb-0">
+      <main className="w-full flex-1 pb-[88px] md:pb-0">
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Home />} />
             <Route path="/buy-data" element={<BuyData />} />
+            <Route path="/history" element={<History />} />
             <Route path="/order-status" element={<OrderStatus />} />
+            <Route path="/refer" element={<Refer />} />
+            <Route path="/agent" element={<Agent />} />
+            <Route path="/more" element={<More />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -7,15 +7,17 @@ import { ArrowRightIcon } from './icons.jsx'
 const links = [
   { to: '/', label: 'Home', end: true },
   { to: '/buy-data', label: 'Buy Data' },
-  { to: '/order-status', label: 'Order Status' },
+  { to: '/history', label: 'History' },
+  { to: '/refer', label: 'Refer' },
+  { to: '/agent', label: 'Become Agent' },
   { to: '/about', label: 'About' },
 ]
 
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 glass md:block">
-      <nav className="wrap flex h-16 items-center justify-between">
-        <Logo />
+      <nav className="wrap flex h-16 items-center justify-between gap-4">
+        <Logo wordmarkClass="h-6" />
         <div className="flex items-center gap-1">
           {links.map((l) => (
             <NavLink
@@ -23,7 +25,7 @@ export default function Navbar() {
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                `rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                `rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
                   isActive ? 'text-brand' : 'text-muted hover:text-fg'
                 }`
               }

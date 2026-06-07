@@ -15,7 +15,7 @@ import {
 const values = [
   { Icon: BoltIcon, title: 'Instant', text: 'Bundles are delivered automatically in seconds — no waiting, no manual processing.' },
   { Icon: ShieldIcon, title: 'Secure', text: 'Payments run on Paystack with bank-grade encryption. We never store your card details.' },
-  { Icon: GlobeIcon, title: 'Open to all', text: 'No accounts, no passwords, no downloads. GhEasy works for everyone, on any phone.' },
+  { Icon: GlobeIcon, title: 'Open to all', text: 'No accounts, no passwords, no downloads. easy works for everyone, on any phone.' },
   { Icon: WalletIcon, title: 'Fair', text: 'Transparent pricing with no hidden charges. The price you see is the price you pay.' },
 ]
 
@@ -35,13 +35,13 @@ export default function About() {
         <div className="glow-mesh pointer-events-none absolute inset-0 -z-10" />
         <div className="wrap max-w-3xl py-14 text-center md:py-20">
           <span className="inline-flex chip">
-            <StarIcon className="h-3.5 w-3.5 text-brand" fill="currentColor" stroke="none" /> About GhEasy
+            <StarIcon className="h-3.5 w-3.5 text-brand" fill="currentColor" stroke="none" /> About easy
           </span>
           <h1 className="mt-5 text-balance text-4xl font-bold leading-[1.02] tracking-tight sm:text-6xl">
             Paying for the essentials should be <span className="text-gradient">easy</span>.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-balance text-base text-muted sm:text-lg">
-            GhEasy is a Ghanaian payments platform on a simple mission: make everyday top-ups and
+            easy is a Ghanaian payments platform on a simple mission: make everyday top-ups and
             bills effortless. We’re starting with data bundles — pick, pay, done.
           </p>
         </div>
@@ -50,14 +50,14 @@ export default function About() {
       {/* Mission */}
       <section className="wrap max-w-3xl">
         <div className="card p-7 shadow-card sm:p-10">
-          <h2 className="text-2xl font-bold tracking-tight">Why we built GhEasy</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Why we built easy</h2>
           <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-muted">
             <p>
               Buying data in Ghana often means juggling USSD codes, app logins, or middlemen. We
               thought it should take seconds — not menus and passwords.
             </p>
             <p>
-              So we built GhEasy: a clean, fast web app that delivers MTN, Telecel and AirtelTigo
+              So we built easy: a clean, fast web app that delivers MTN, Telecel and AirtelTigo
               bundles instantly, with payments secured by Paystack. No sign-up. No app store. Just
               open it, choose a bundle, and pay with Mobile Money or card.
             </p>

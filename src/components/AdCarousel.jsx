@@ -23,7 +23,7 @@ const DEFAULT_SLIDES = [
   {
     id: 'gh-3',
     title: 'No login. No stress.',
-    description: 'Pick, pay, done. GhEasy works for everyone.',
+    description: 'Pick, pay, done. easy works for everyone.',
     background: '#030706',
     color: '#ffffff',
     accent: true,

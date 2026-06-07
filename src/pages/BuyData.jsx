@@ -8,6 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import { fetchBundles, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
+import { getProfile, saveOrder, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
   formatCedis,
@@ -41,8 +42,8 @@ export default function BuyData() {
   const navigate = useNavigate()
 
   const [network, setNetwork] = useState(() => validNetwork(searchParams.get('network')))
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState(() => getProfile().phone || '')
+  const [email, setEmail] = useState(() => getProfile().email || '')
   const [selectedId, setSelectedId] = useState(null)
   const [triedSubmit, setTriedSubmit] = useState(false)
 
@@ -101,11 +102,22 @@ export default function BuyData() {
     try {
       const cleanPhone = normalizePhone(phone)
       const payerEmail = email.trim() || `${cleanPhone}@gheasy.com`
-      const { url } = await initiatePurchase({
+      const { url, reference } = await initiatePurchase({
         network,
         phone: cleanPhone,
         email: payerEmail,
         bundle: selectedBundle,
+      })
+      // Remember the buyer locally (no login) and log the order for History.
+      saveProfile({ phone: cleanPhone, ...(email.trim() ? { email: email.trim() } : {}) })
+      saveOrder({
+        reference: reference || null,
+        network,
+        volume: selectedBundle.volume || selectedBundle.name,
+        amount: selectedBundle.sellPrice,
+        phone: cleanPhone,
+        status: 'pending',
+        source: 'App',
       })
       track('purchase_initiated', {
         network,
