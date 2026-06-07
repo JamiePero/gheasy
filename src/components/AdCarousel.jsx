@@ -39,9 +39,12 @@ export default function AdCarousel() {
   useEffect(() => {
     let alive = true
     fetchAds().then((ads) => {
-      if (alive && ads.length > 0) {
+      if (!alive) return
+      // Skip third-party FlashX creatives — show our own slides instead.
+      const clean = ads.filter((a) => !/flashx/i.test(`${a.title || ''} ${a.description || ''}`))
+      if (clean.length > 0) {
         setSlides(
-          ads.map((a) => ({
+          clean.map((a) => ({
             id: a.id,
             title: a.title,
             description: a.description,

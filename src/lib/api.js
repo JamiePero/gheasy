@@ -122,32 +122,22 @@ function findReference(json) {
 }
 
 /**
- * Start a Paystack checkout for a bundle.
- *
- * NOTE: getflashx does not publish the exact field names it requires, so we
- * send the bundle's own fields (as returned by /data/bundles) alongside the
- * recipient + payer email and a callback URL. If your backend expects
- * different keys, this is the single place to adjust them.
+ * Start a Paystack checkout for a bundle, using the exact field names the
+ * getflashx backend expects. No-login customers are sent as userId "guest".
  */
-export async function initiatePurchase({ network, phone, email, bundle }) {
+export async function initiatePurchase({ network, phone, bundle }) {
   const callbackUrl = `${window.location.origin}/order-status`
   const payload = {
-    network,
-    phone,
-    phoneNumber: phone,
-    recipient: phone,
-    email,
-    name: bundle.name,
-    bundleName: bundle.name,
-    volume: bundle.volume,
+    userId: 'guest',
+    recipientPhone: phone,
+    networkType: network, // mtn | telecel | airteltigo_ishare | airteltigo_bigtime
     volumeInMB: bundle.volumeInMB,
-    price: bundle.sellPrice,
-    amount: bundle.sellPrice,
-    sellPrice: bundle.sellPrice,
-    provider: bundle.provider,
-    callback_url: callbackUrl,
-    callbackUrl,
+    bundleName: bundle.name, // e.g. "1GB"
+    callbackUrl, // Paystack returns the customer to /order-status
   }
+  // gbAmount is only present on DataHub bundles.
+  const gbAmount = bundle.raw?.gbAmount ?? bundle.gbAmount
+  if (gbAmount != null) payload.gbAmount = gbAmount
 
   let res
   try {

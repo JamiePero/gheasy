@@ -7,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle.jsx'
 import AdCarousel from '../components/AdCarousel.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
+import { fetchBundles } from '../lib/api.js'
 import { getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import {
@@ -46,8 +47,31 @@ function RotatingWord() {
   )
 }
 
+// Cheapest live bundle per network → "From ₵X"
+function useNetworkFrom() {
+  const [prices, setPrices] = useState({})
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let alive = true
+    Promise.allSettled(NETWORKS.map((n) => fetchBundles(n.id))).then((res) => {
+      if (!alive) return
+      const out = {}
+      res.forEach((r, i) => {
+        if (r.status === 'fulfilled' && r.value.length) out[NETWORKS[i].id] = r.value[0].sellPrice
+      })
+      setPrices(out)
+      setLoading(false)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+  return { prices, loading }
+}
+
 export default function Home() {
   const navigate = useNavigate()
+  const { prices, loading: pricesLoading } = useNetworkFrom()
   const [recent] = useState(() => getOrders().slice(0, 3))
   const [profile] = useState(() => getProfile())
   const [store] = useState(() => getAgentStore())
@@ -143,7 +167,13 @@ export default function Home() {
                 </span>
               )}
               <NetworkLogo network={n} />
-              <span className="text-sm font-semibold opacity-90">From {formatCedis(n.from)}</span>
+              <span className="text-sm font-semibold opacity-90">
+                {pricesLoading
+                  ? 'From ₵…'
+                  : prices[n.id] != null
+                    ? `From ${formatCedis(prices[n.id])}`
+                    : 'Tap to buy'}
+              </span>
             </button>
           ))}
         </div>

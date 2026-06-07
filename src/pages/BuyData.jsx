@@ -50,7 +50,6 @@ export default function BuyData() {
 
   const [network, setNetwork] = useState(() => validNetwork(searchParams.get('network')))
   const [phone, setPhone] = useState(() => getProfile().phone || '')
-  const [email, setEmail] = useState(() => getProfile().email || '')
   const [selectedId, setSelectedId] = useState(null)
   const [triedSubmit, setTriedSubmit] = useState(false)
 
@@ -115,15 +114,13 @@ export default function BuyData() {
     setSubmitting(true)
     try {
       const cleanPhone = normalizePhone(phone)
-      const payerEmail = email.trim() || `${cleanPhone}@gheasy.com`
       const { url, reference } = await initiatePurchase({
         network,
         phone: cleanPhone,
-        email: payerEmail,
         bundle: selectedBundle,
       })
       // Remember the buyer locally (no login) and log the order for History.
-      saveProfile({ phone: cleanPhone, ...(email.trim() ? { email: email.trim() } : {}) })
+      saveProfile({ phone: cleanPhone })
       saveOrder({
         reference: reference || null,
         network,

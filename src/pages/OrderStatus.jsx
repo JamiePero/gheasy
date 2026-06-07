@@ -94,7 +94,7 @@ export default function OrderStatus() {
     async (refArg) => {
       const ref = String(refArg ?? '').trim()
       if (!ref) {
-        setError('Enter an order reference or phone number.')
+        setError('Enter an order reference.')
         return
       }
       setError('')
@@ -177,9 +177,7 @@ export default function OrderStatus() {
           <ReceiptIcon className="h-3.5 w-3.5 text-brand" /> Order status
         </span>
         <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Track your order</h1>
-        <p className="mt-2 text-sm text-muted">
-          Enter your order reference (or phone number) to check delivery.
-        </p>
+        <p className="mt-2 text-sm text-muted">Enter your order reference to check delivery.</p>
       </div>
 
       {/* Paystack return banner */}
@@ -214,7 +212,7 @@ export default function OrderStatus() {
               setInput(e.target.value)
               if (error) setError('')
             }}
-            placeholder="e.g. GH-9F3K2A or 024 123 4567"
+            placeholder="e.g. GH-9F3K2A"
             className="w-full bg-transparent py-3.5 text-[15px] font-medium text-fg outline-none placeholder:font-normal placeholder:text-muted/60"
           />
         </div>

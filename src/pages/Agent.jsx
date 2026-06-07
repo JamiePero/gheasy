@@ -16,8 +16,8 @@ import {
   WalletIcon,
 } from '../components/icons.jsx'
 
-// TODO: replace with the real agent support WhatsApp number.
-const WHATSAPP = '233000000000'
+// Agent support WhatsApp number.
+const WHATSAPP = '233539255071'
 
 const benefits = [
   { Icon: WalletIcon, title: 'Custom pricing', text: 'Set your own price per GB and keep the margin on every sale.' },
