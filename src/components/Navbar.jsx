@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
-import { Wordmark } from './Logo.jsx'
+import { LogoMark, Wordmark } from './Logo.jsx'
 import Avatar from './Avatar.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import Button from './Button.jsx'
@@ -20,8 +20,9 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 hidden border-b border-border/70 glass md:block">
       <nav className="wrap grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4">
-        {/* Left — "easy" wordmark (theme-aware), same as the app */}
-        <NavLink to="/" className="justify-self-start" aria-label="easy — home">
+        {/* Left — "e" mark + "easy" wordmark (theme-aware) */}
+        <NavLink to="/" className="flex items-center gap-2.5 justify-self-start" aria-label="easy — home">
+          <LogoMark className="h-9 w-9" />
           <Wordmark className="h-7" />
         </NavLink>
 

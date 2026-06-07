@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Wordmark } from './Logo.jsx'
+import { LogoMark, Wordmark } from './Logo.jsx'
 
 const links = [
   { to: '/buy-data', label: 'Buy Data' },
@@ -14,8 +14,9 @@ export default function Footer() {
   return (
     <footer className="hidden border-t border-border bg-surface md:block">
       <div className="wrap grid h-20 grid-cols-3 items-center gap-4">
-        {/* Left — "easy" wordmark (theme-aware) */}
-        <Link to="/" className="justify-self-start" aria-label="easy — home">
+        {/* Left — "e" mark + "easy" wordmark */}
+        <Link to="/" className="flex items-center gap-2.5 justify-self-start" aria-label="easy — home">
+          <LogoMark className="h-8 w-8" />
           <Wordmark className="h-7" />
         </Link>
 
