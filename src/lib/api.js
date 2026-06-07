@@ -65,7 +65,7 @@ export async function fetchBundles(network) {
 
 // --- Initiate purchase -----------------------------------------------------
 
-function findPaystackUrl(json) {
+export function findPaystackUrl(json) {
   return (
     json?.data?.authorization_url ||
     json?.authorization_url ||
@@ -79,7 +79,7 @@ function findPaystackUrl(json) {
   )
 }
 
-function findReference(json) {
+export function findReference(json) {
   return (
     json?.reference ||
     json?.data?.reference ||
@@ -91,42 +91,19 @@ function findReference(json) {
 }
 
 /**
- * Start a Paystack checkout for a bundle, using the exact field names the
- * getflashx backend expects. No-login customers are sent as userId "guest".
+ * Start a purchase via the GhEasy backend, which initialises the Paystack
+ * checkout. Returns the raw response ({ success, ... }); callers read the
+ * authorization URL + reference from it (see findPaystackUrl / findReference).
  */
-export async function initiatePurchase({ network, phone, bundle }) {
-  const callbackUrl = `${window.location.origin}/order-status`
-  const payload = {
-    userId: 'guest',
-    recipientPhone: phone,
-    networkType: network, // mtn | telecel | airteltigo_ishare | airteltigo_bigtime
-    volumeInMB: bundle.volumeInMB,
-    bundleName: bundle.name, // e.g. "1GB"
-    callbackUrl, // Paystack returns the customer to /order-status
-  }
-  // gbAmount is only present on DataHub bundles.
-  const gbAmount = bundle.raw?.gbAmount ?? bundle.gbAmount
-  if (gbAmount != null) payload.gbAmount = gbAmount
-
-  let res
-  try {
-    res = await fetch(`${BASE}/data/initiate-purchase`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(payload),
-    })
-  } catch {
-    throw new Error('Network error — check your connection and try again.')
-  }
-
-  const json = await res.json().catch(() => ({}))
-  if (!res.ok || json?.success === false) {
-    throw new Error(json?.error || json?.message || `Payment couldn’t be started (${res.status}).`)
-  }
-
-  const url = findPaystackUrl(json)
-  if (!url) throw new Error('No payment link was returned. Please try again in a moment.')
-  return { url, reference: findReference(json), raw: json }
+export async function initiatePurchase({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName }) {
+  const res = await fetch(`${BASE}/gheasy/purchase`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName }),
+  })
+  const data = await res.json()
+  if (!data.success) throw new Error(data.error || 'Failed to initiate purchase')
+  return data
 }
 
 // --- Order status ----------------------------------------------------------

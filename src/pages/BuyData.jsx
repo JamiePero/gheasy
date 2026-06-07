@@ -6,7 +6,7 @@ import Button from '../components/Button.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
-import { fetchBundles, initiatePurchase } from '../lib/api.js'
+import { fetchBundles, findPaystackUrl, findReference, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, saveOrder, saveProfile } from '../lib/store.js'
 import {
@@ -114,15 +114,19 @@ export default function BuyData() {
     setSubmitting(true)
     try {
       const cleanPhone = normalizePhone(phone)
-      const { url, reference } = await initiatePurchase({
-        network,
-        phone: cleanPhone,
-        bundle: selectedBundle,
+      const data = await initiatePurchase({
+        recipientPhone: cleanPhone,
+        networkType: network,
+        volumeInMB: selectedBundle.volumeInMB,
+        gbAmount: selectedBundle.raw?.gbAmount,
+        bundleName: selectedBundle.name,
       })
+      const url = findPaystackUrl(data)
+      if (!url) throw new Error('No payment link was returned. Please try again.')
       // Remember the buyer locally (no login) and log the order for History.
       saveProfile({ phone: cleanPhone })
       saveOrder({
-        reference: reference || null,
+        reference: findReference(data),
         network,
         volume: selectedBundle.volume || selectedBundle.name,
         amount: selectedBundle.sellPrice,
