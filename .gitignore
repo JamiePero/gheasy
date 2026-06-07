@@ -9,3 +9,9 @@ dist-ssr
 *.log
 npm-debug.log*
 .vite
+
+# Local preview/launch tooling (machine-specific paths)
+.claude/
+
+# Scratch / reference art — not app assets
+public/ChatGPT Image*.png

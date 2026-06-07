@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import AdCarousel from '../components/AdCarousel.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import { NETWORKS, formatCedis } from '../lib/format.js'
 import {
@@ -26,24 +27,9 @@ const stats = [
 ]
 
 const steps = [
-  {
-    n: '01',
-    Icon: GlobeIcon,
-    title: 'Pick your network',
-    text: 'MTN, Telecel or AirtelTigo — choose the network and the bundle that fits.',
-  },
-  {
-    n: '02',
-    Icon: PhoneIcon,
-    title: 'Enter the number',
-    text: 'Top up your own line or send data to anyone in Ghana. No account needed.',
-  },
-  {
-    n: '03',
-    Icon: WalletIcon,
-    title: 'Pay & you’re done',
-    text: 'Pay securely with Mobile Money or card. Data lands in seconds.',
-  },
+  { n: '01', Icon: GlobeIcon, title: 'Pick your network', text: 'MTN, Telecel or AirtelTigo — choose the network and the bundle that fits.' },
+  { n: '02', Icon: PhoneIcon, title: 'Enter the number', text: 'Top up your own line or send data to anyone in Ghana. No account needed.' },
+  { n: '03', Icon: WalletIcon, title: 'Pay & you’re done', text: 'Pay securely with Mobile Money or card. Data lands in seconds.' },
 ]
 
 const features = [
@@ -56,24 +42,9 @@ const features = [
 ]
 
 const testimonials = [
-  {
-    quote: 'Bought 10GB for my mum in the village and it landed before I hung up the call. Unbelievably fast.',
-    name: 'Ama Boateng',
-    location: 'Accra',
-    color: '#22C55E',
-  },
-  {
-    quote: 'No app, no stress. I just open GhEasy, pay with MoMo and I’m back online. This is how it should be.',
-    name: 'Kwesi Mensah',
-    location: 'Kumasi',
-    color: '#FFD700',
-  },
-  {
-    quote: 'I top up data for my whole shop here. Prices are fair and it has never failed me once.',
-    name: 'Efua Sarpong',
-    location: 'Takoradi',
-    color: '#FF0000',
-  },
+  { quote: 'Bought 10GB for my mum in the village and it landed before I hung up the call. Unbelievably fast.', name: 'Ama Boateng', location: 'Accra', color: '#22C55E' },
+  { quote: 'No app, no stress. I just open GhEasy, pay with MoMo and I’m back online. This is how it should be.', name: 'Kwesi Mensah', location: 'Kumasi', color: '#FFD700' },
+  { quote: 'I top up data for my whole shop here. Prices are fair and it has never failed me once.', name: 'Efua Sarpong', location: 'Takoradi', color: '#CC0000' },
 ]
 
 function HeroPhone() {
@@ -95,15 +66,13 @@ function HeroPhone() {
               <p className="font-display text-lg font-bold">Buy Data</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {NETWORKS.map((n, i) => (
+              {NETWORKS.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex flex-col items-center gap-1.5 rounded-2xl border p-2 ${
-                    i === 0 ? 'border-brand bg-brand/[0.06]' : 'border-border'
-                  }`}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl p-2"
+                  style={{ background: n.gradient, color: n.ink }}
                 >
-                  <NetworkBadge network={n} size="sm" />
-                  <span className="text-[9px] font-semibold">{n.label}</span>
+                  <span className="font-display text-xs font-bold">{n.display}</span>
                 </div>
               ))}
             </div>
@@ -112,11 +81,13 @@ function HeroPhone() {
                 <div
                   key={d.v}
                   className={`flex items-center justify-between rounded-2xl border p-3 ${
-                    i === 1 ? 'border-brand bg-brand/[0.06] ring-1 ring-brand' : 'border-border'
+                    i === 1 ? 'border-brand bg-brand/[0.08] ring-1 ring-brand' : 'border-border'
                   }`}
                 >
                   <span className="font-display text-xl font-bold">{d.v}</span>
-                  <span className="text-sm font-bold tnum text-brand">{formatCedis(d.p)}</span>
+                  <span className="text-sm font-bold tnum" style={{ color: '#FFD700' }}>
+                    {formatCedis(d.p)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -133,7 +104,6 @@ function HeroPhone() {
 export default function Home() {
   const [network, setNetwork] = useState('mtn')
   const navigate = useNavigate()
-
   const goBuy = () => navigate(`/buy-data?network=${network}`)
 
   return (
@@ -143,8 +113,7 @@ export default function Home() {
         <div className="glow-mesh pointer-events-none absolute inset-0 -z-10" />
         <div className="bg-grid pointer-events-none absolute inset-0 -z-10 opacity-40 [mask-image:radial-gradient(70%_60%_at_50%_0%,black,transparent)]" />
 
-        <div className="wrap grid items-center gap-12 pb-10 pt-10 sm:pt-16 lg:grid-cols-2 lg:gap-8 lg:pb-20 lg:pt-20">
-          {/* Copy + selector */}
+        <div className="wrap grid items-center gap-12 pb-10 pt-10 sm:pt-16 lg:grid-cols-2 lg:gap-8 lg:pb-16 lg:pt-20">
           <div className="mx-auto max-w-xl text-center lg:mx-0 lg:text-left">
             <span className="animate-fade-up inline-flex chip">
               <BoltIcon className="h-3.5 w-3.5 text-brand" />
@@ -168,23 +137,11 @@ export default function Home() {
               just pick, pay, done.
             </p>
 
-            {/* Network selector */}
-            <div className="animate-fade-up mt-8" style={{ animationDelay: '180ms' }}>
-              <p className="mb-3 text-left text-sm font-semibold text-fg">Choose a network</p>
-              <NetworkPicker value={network} onChange={setNetwork} />
-            </div>
-
-            {/* CTA */}
             <div
-              className="animate-fade-up mt-6 flex flex-col gap-3 sm:flex-row lg:items-center"
-              style={{ animationDelay: '240ms' }}
+              className="animate-fade-up mt-7 flex flex-col gap-3 sm:flex-row lg:items-center"
+              style={{ animationDelay: '180ms' }}
             >
-              <Button
-                onClick={goBuy}
-                size="lg"
-                className="w-full sm:w-auto"
-                iconRight={<ArrowRightIcon className="h-5 w-5" />}
-              >
+              <Button onClick={goBuy} size="lg" className="w-full sm:w-auto" iconRight={<ArrowRightIcon className="h-5 w-5" />}>
                 Buy Data
               </Button>
               <Button to="/order-status" variant="secondary" size="lg" className="w-full sm:w-auto">
@@ -192,31 +149,44 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Mobile trust strip */}
             <div className="mt-8 flex items-center justify-center gap-5 text-xs text-muted lg:justify-start">
-              <span className="inline-flex items-center gap-1.5">
-                <ShieldIcon className="h-4 w-4 text-brand" /> Secure
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <BoltIcon className="h-4 w-4 text-brand" /> Instant
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <GlobeIcon className="h-4 w-4 text-brand" /> No login
-              </span>
+              <span className="inline-flex items-center gap-1.5"><ShieldIcon className="h-4 w-4 text-brand" /> Secure</span>
+              <span className="inline-flex items-center gap-1.5"><BoltIcon className="h-4 w-4 text-brand" /> Instant</span>
+              <span className="inline-flex items-center gap-1.5"><GlobeIcon className="h-4 w-4 text-brand" /> No login</span>
             </div>
           </div>
 
-          {/* Phone mockup — desktop only */}
           <div className="hidden lg:block">
             <HeroPhone />
           </div>
         </div>
       </section>
 
-      {/* ───────── Everything below is the desktop landing page ───────── */}
+      {/* ───────────────────────── AD CAROUSEL ───────────────────────── */}
+      <section className="wrap pb-2">
+        <AdCarousel />
+      </section>
 
-      {/* Stats */}
-      <section className="hidden border-y border-border bg-surface md:block">
+      {/* ───────────────────────── NETWORK PICKER ───────────────────────── */}
+      <section className="wrap pt-8">
+        <div className="mx-auto max-w-xl rounded-[2rem] border border-border bg-card p-5 shadow-card sm:p-7">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-bold tracking-tight">Choose your network</h2>
+            <span className="text-xs text-muted">Step 1 of 2</span>
+          </div>
+          <NetworkPicker value={network} onChange={setNetwork} className="mt-4" />
+          <Button onClick={goBuy} size="lg" className="mt-5 w-full" iconRight={<ArrowRightIcon className="h-5 w-5" />}>
+            Buy {NETWORKS.find((n) => n.id === network)?.label} Data
+          </Button>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
+            <ShieldIcon className="h-4 w-4 text-brand" /> Secured by Paystack · No login required
+          </p>
+        </div>
+      </section>
+
+      {/* ───────── Desktop landing sections ───────── */}
+
+      <section className="mt-16 hidden border-y border-border bg-surface md:block">
         <div className="wrap grid grid-cols-2 gap-6 py-10 lg:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
@@ -227,15 +197,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How it works */}
       <section className="hidden md:block">
         <div className="wrap py-20">
           <div className="mx-auto max-w-2xl text-center">
             <span className="chip">How it works</span>
             <h2 className="mt-4 text-4xl font-bold tracking-tight">Data in three taps</h2>
-            <p className="mt-3 text-muted">
-              GhEasy strips away everything that gets between you and being back online.
-            </p>
+            <p className="mt-3 text-muted">GhEasy strips away everything that gets between you and being back online.</p>
           </div>
           <div className="mt-14 grid gap-6 lg:grid-cols-3">
             {steps.map((s) => (
@@ -252,7 +219,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Networks */}
       <section className="hidden border-y border-border bg-surface md:block">
         <div className="wrap py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -260,9 +226,7 @@ export default function Home() {
               <span className="chip">Networks</span>
               <h2 className="mt-4 text-4xl font-bold tracking-tight">Every major network</h2>
             </div>
-            <p className="max-w-sm text-muted">
-              One place for all your data. Live bundle prices pulled straight from each network.
-            </p>
+            <p className="max-w-sm text-muted">One place for all your data. Live bundle prices pulled straight from each network.</p>
           </div>
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
             {NETWORKS.map((n) => (
@@ -283,7 +247,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
       <section className="hidden md:block">
         <div className="wrap py-20">
           <div className="mx-auto max-w-2xl text-center">
@@ -304,13 +267,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
       <section className="hidden border-t border-border bg-surface md:block">
         <div className="wrap py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <span className="chip">
-              <HeartIcon className="h-3.5 w-3.5 text-brand" /> Loved across Ghana
-            </span>
+            <span className="chip"><HeartIcon className="h-3.5 w-3.5 text-brand" /> Loved across Ghana</span>
             <h2 className="mt-4 text-4xl font-bold tracking-tight">Trusted from Accra to Tamale</h2>
           </div>
           <div className="mt-14 grid gap-6 lg:grid-cols-3">
@@ -321,14 +281,9 @@ export default function Home() {
                     <StarIcon key={i} className="h-4 w-4" fill="currentColor" stroke="none" />
                   ))}
                 </div>
-                <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-fg">
-                  “{t.quote}”
-                </blockquote>
+                <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-fg">“{t.quote}”</blockquote>
                 <figcaption className="mt-6 flex items-center gap-3">
-                  <span
-                    className="grid h-10 w-10 place-items-center rounded-full font-display text-sm font-bold text-white"
-                    style={{ background: t.color }}
-                  >
+                  <span className="grid h-10 w-10 place-items-center rounded-full font-display text-sm font-bold text-white" style={{ background: t.color }}>
                     {t.name.charAt(0)}
                   </span>
                   <span>
@@ -342,24 +297,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Final CTA */}
       <section className="wrap py-16 md:py-24">
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-400 via-brand to-brand-600 p-8 text-center shadow-glow sm:p-14">
           <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
           <SparkleIcon className="mx-auto h-8 w-8 text-white/90" />
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Pay anything. Anytime.
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-balance text-white/90">
-            Your next data bundle is 30 seconds away. No app, no login, no stress.
-          </p>
-          <Button
-            onClick={goBuy}
-            size="lg"
-            variant="dark"
-            className="mx-auto mt-8 bg-white !text-brand-700 shadow-none hover:bg-white/90"
-            iconRight={<ArrowRightIcon className="h-5 w-5" />}
-          >
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">Pay anything. Anytime.</h2>
+          <p className="mx-auto mt-3 max-w-md text-balance text-white/90">Your next data bundle is 30 seconds away. No app, no login, no stress.</p>
+          <Button onClick={goBuy} size="lg" className="mx-auto mt-8 bg-white !text-brand-700 shadow-none hover:bg-white/90" iconRight={<ArrowRightIcon className="h-5 w-5" />}>
             Buy Data now
           </Button>
         </div>

@@ -1,8 +1,10 @@
 // ---------------------------------------------------------------------------
-// GhEasy API client — data bundles
+// GhEasy API client — data bundles, ads & orders
 // Base: https://api.getflashx.com
 // All responses use a { success, ... } / { success:false, error } envelope.
 // ---------------------------------------------------------------------------
+
+import { formatVolume } from './format.js'
 
 const BASE = 'https://api.getflashx.com'
 
@@ -11,21 +13,15 @@ const num = (v) => {
   return Number.isFinite(n) ? n : null
 }
 
-function mbToLabel(mb) {
-  const n = Number(mb)
-  if (!Number.isFinite(n)) return ''
-  if (n >= 1000) return `${+(n / 1000).toFixed(n % 1000 === 0 ? 0 : 2)}GB`
-  return `${n}MB`
-}
-
 // --- Bundles ---------------------------------------------------------------
 
 function normalizeBundle(b, i) {
-  const sellPrice = num(b.sellPrice ?? b.price ?? b.amount)
+  // Always price from `sellPrice` — never `price`.
+  const sellPrice = num(b.sellPrice)
+  // Never show raw MB: convert volumeInMB → GB (or MB under 1GB).
   const volume =
-    b.volume ||
-    (b.gbAmount ? `${b.gbAmount}GB` : '') ||
-    (b.volumeInMB ? mbToLabel(b.volumeInMB) : '') ||
+    formatVolume(b.volumeInMB) ||
+    (b.gbAmount ? `${Math.round(b.gbAmount)}GB` : '') ||
     b.name ||
     ''
   return {
@@ -35,7 +31,6 @@ function normalizeBundle(b, i) {
     volume,
     volumeInMB: b.volumeInMB ?? null,
     sellPrice,
-    costPrice: num(b.price),
     description: b.description || '',
     validity: b.validity || b.expiry || b.duration || '',
     provider: b.provider || null,
@@ -59,6 +54,37 @@ export async function fetchBundles(network) {
     .map(normalizeBundle)
     .filter((b) => b.sellPrice != null && b.sellPrice > 0)
     .sort((a, b) => a.sellPrice - b.sellPrice)
+}
+
+// --- Ads (home carousel) ---------------------------------------------------
+
+function normalizeAd(a, i) {
+  return {
+    id: a.id || a._id || `ad-${i}`,
+    title: a.title || a.heading || '',
+    description: a.description || a.subtitle || a.text || '',
+    imageUrl: a.imageUrl || a.image || a.imageURL || a.banner || '',
+    backgroundColor: a.backgroundColor || a.bgColor || a.background || '',
+    linkUrl: a.linkUrl || a.link || a.url || a.href || '',
+  }
+}
+
+export async function fetchAds() {
+  try {
+    const res = await fetch(`${BASE}/ads`, { headers: { Accept: 'application/json' } })
+    if (!res.ok) return []
+    const json = await res.json().catch(() => null)
+    const list = Array.isArray(json)
+      ? json
+      : Array.isArray(json?.ads)
+        ? json.ads
+        : Array.isArray(json?.data)
+          ? json.data
+          : []
+    return list.map(normalizeAd).filter((a) => a.title || a.imageUrl)
+  } catch {
+    return []
+  }
 }
 
 // --- Initiate purchase -----------------------------------------------------

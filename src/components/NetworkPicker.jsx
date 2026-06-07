@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { NETWORKS } from '../lib/format.js'
+import { track } from '../lib/analytics.js'
 import { CheckIcon } from './icons.jsx'
 
 const badgeSizes = {
@@ -8,18 +9,25 @@ const badgeSizes = {
   lg: 'h-16 w-16 text-sm rounded-2xl',
 }
 
+// Small gradient chip used in summaries / order details.
 export function NetworkBadge({ network, size = 'md', className = '' }) {
   return (
     <span
       className={`grid place-items-center font-display font-bold leading-none ${badgeSizes[size]} ${className}`}
-      style={{ background: network.color, color: network.ink }}
+      style={{ background: network.gradient, color: network.ink }}
     >
-      {network.short}
+      {network.abbr}
     </span>
   )
 }
 
+// Full-colour network selector cards.
 export default function NetworkPicker({ value, onChange, className = '' }) {
+  const handle = (id) => {
+    track('network_selected', { network: id })
+    onChange(id)
+  }
+
   return (
     <div
       className={`grid grid-cols-3 gap-3 ${className}`}
@@ -34,17 +42,23 @@ export default function NetworkPicker({ value, onChange, className = '' }) {
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => onChange(n.id)}
+            onClick={() => handle(n.id)}
             whileTap={{ scale: 0.95 }}
-            className={`relative flex flex-col items-center gap-2.5 rounded-3xl border p-3 pt-4 text-center transition-all duration-200 ${
-              active
-                ? 'border-brand bg-brand/[0.06]'
-                : 'border-border bg-card hover:border-brand/40'
+            className={`relative flex aspect-[5/4] flex-col items-center justify-center gap-1 overflow-hidden rounded-3xl p-3 text-center transition-all duration-200 ${
+              active ? 'ring-2 ring-brand ring-offset-2 ring-offset-bg' : ''
             }`}
-            style={active ? { boxShadow: `0 14px 34px -14px ${n.glow}` } : undefined}
+            style={{
+              background: n.gradient,
+              color: n.ink,
+              boxShadow: active ? `0 18px 38px -12px ${n.glow}` : `0 10px 26px -16px ${n.glow}`,
+            }}
           >
-            <NetworkBadge network={n} size="md" />
-            <span className="text-sm font-semibold leading-tight text-fg">{n.label}</span>
+            <span className="font-display text-xl font-bold leading-none sm:text-2xl">
+              {n.display}
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70 sm:text-[11px]">
+              {n.label}
+            </span>
             <AnimatePresence>
               {active && (
                 <motion.span
@@ -52,9 +66,9 @@ export default function NetworkPicker({ value, onChange, className = '' }) {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-                  className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-brand text-white"
+                  className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white text-brand shadow-md"
                 >
-                  <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />
+                  <CheckIcon className="h-4 w-4" strokeWidth={3} />
                 </motion.span>
               )}
             </AnimatePresence>

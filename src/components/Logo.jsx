@@ -1,14 +1,19 @@
 import { Link } from 'react-router-dom'
 
+// The GhEasy "e" mark sits on a dark-green app-icon chip so the white glyph
+// stays visible in both light and dark themes.
 export function LogoMark({ className = 'h-9 w-9' }) {
   return (
     <span
-      className={`relative inline-grid shrink-0 place-items-center rounded-2xl shadow-[0_6px_18px_-6px_rgba(34,197,94,0.65)] ${className}`}
-      style={{ background: 'linear-gradient(135deg,#4ADE80,#16A34A)' }}
+      className={`relative inline-grid shrink-0 place-items-center overflow-hidden rounded-xl ring-1 ring-brand/30 ${className}`}
+      style={{ background: 'linear-gradient(135deg,#0f2a1a,#06120c)' }}
     >
-      <svg viewBox="0 0 24 24" className="h-1/2 w-1/2" fill="#fff" aria-hidden="true">
-        <polygon points="12,3 14.2,9.2 20.8,9.4 15.6,13.4 17.4,19.8 12,16 6.6,19.8 8.4,13.4 3.2,9.4 9.8,9.2" />
-      </svg>
+      <img
+        src="/easytra.png"
+        alt=""
+        draggable="false"
+        className="h-[82%] w-[82%] object-contain"
+      />
     </span>
   )
 }

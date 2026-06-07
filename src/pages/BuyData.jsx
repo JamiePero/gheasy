@@ -7,6 +7,7 @@ import PhoneInput from '../components/PhoneInput.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import { fetchBundles, initiatePurchase } from '../lib/api.js'
+import { track } from '../lib/analytics.js'
 import {
   NETWORKS,
   formatCedis,
@@ -106,6 +107,11 @@ export default function BuyData() {
         email: payerEmail,
         bundle: selectedBundle,
       })
+      track('purchase_initiated', {
+        network,
+        bundle: selectedBundle.volume || selectedBundle.name,
+        amount: selectedBundle.sellPrice,
+      })
       // Hand off to Paystack — they’ll redirect back to /order-status.
       window.location.href = url
     } catch (e) {
@@ -196,6 +202,11 @@ export default function BuyData() {
                     onSelect={() => {
                       setSelectedId(b.id)
                       setSubmitError('')
+                      track('bundle_selected', {
+                        network,
+                        bundle: b.volume || b.name,
+                        price: b.sellPrice,
+                      })
                     }}
                   />
                 ))}

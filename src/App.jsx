@@ -5,6 +5,7 @@ import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
+import RouteTracker from './components/RouteTracker.jsx'
 import Home from './pages/Home.jsx'
 import BuyData from './pages/BuyData.jsx'
 import OrderStatus from './pages/OrderStatus.jsx'
@@ -16,6 +17,7 @@ export default function App() {
   return (
     <div className="relative flex min-h-dvh flex-col bg-bg">
       <ScrollToTop />
+      <RouteTracker />
       <MobileHeader />
       <Navbar />
       <main className="w-full flex-1 pb-[84px] md:pb-0">
