@@ -63,37 +63,6 @@ export async function fetchBundles(network) {
     .sort((a, b) => a.sellPrice - b.sellPrice)
 }
 
-// --- Ads (home carousel) ---------------------------------------------------
-
-function normalizeAd(a, i) {
-  return {
-    id: a.id || a._id || `ad-${i}`,
-    title: a.title || a.heading || '',
-    description: a.description || a.subtitle || a.text || '',
-    imageUrl: a.imageUrl || a.image || a.imageURL || a.banner || '',
-    backgroundColor: a.backgroundColor || a.bgColor || a.background || '',
-    linkUrl: a.linkUrl || a.link || a.url || a.href || '',
-  }
-}
-
-export async function fetchAds() {
-  try {
-    const res = await fetch(`${BASE}/ads`, { headers: { Accept: 'application/json' } })
-    if (!res.ok) return []
-    const json = await res.json().catch(() => null)
-    const list = Array.isArray(json)
-      ? json
-      : Array.isArray(json?.ads)
-        ? json.ads
-        : Array.isArray(json?.data)
-          ? json.data
-          : []
-    return list.map(normalizeAd).filter((a) => a.title || a.imageUrl)
-  } catch {
-    return []
-  }
-}
-
 // --- Initiate purchase -----------------------------------------------------
 
 function findPaystackUrl(json) {
