@@ -6,9 +6,9 @@ import Button from '../components/Button.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
-import { fetchBundles, findPaystackUrl, findReference, initiatePurchase } from '../lib/api.js'
+import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
-import { getProfile, saveOrder, saveProfile } from '../lib/store.js'
+import { getProfile, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
   detectNetworkFamily,
@@ -83,8 +83,18 @@ export default function BuyData() {
       .finally(() => {
         if (id === reqId.current) setLoading(false)
       })
-  }, [network, reloadFlag])
+}, [network, reloadFlag])
 
+  // Reset submitting state when user returns from Paystack
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setSubmitting(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [])
   const selectedBundle = useMemo(
     () => bundles.find((b) => b.id === selectedId) || null,
     [bundles, selectedId],
@@ -104,7 +114,7 @@ export default function BuyData() {
 
   const reload = () => setReloadFlag((f) => f + 1)
 
-  async function handlePay() {
+ async function handlePay() {
     setSubmitError('')
     setTriedSubmit(true)
     if (!phoneValid || mismatch || !selectedBundle) {
@@ -123,26 +133,15 @@ export default function BuyData() {
       })
       const url = findPaystackUrl(data)
       if (!url) throw new Error('No payment link was returned. Please try again.')
-      // Remember the buyer locally (no login) and log the order for History.
       saveProfile({ phone: cleanPhone })
-      saveOrder({
-        reference: findReference(data),
-        network,
-        volume: selectedBundle.volume || selectedBundle.name,
-        amount: selectedBundle.sellPrice,
-        phone: cleanPhone,
-        status: 'pending',
-        source: 'App',
-      })
       track('purchase_initiated', {
         network,
         bundle: selectedBundle.volume || selectedBundle.name,
         amount: selectedBundle.sellPrice,
       })
-      // Hand off to Paystack — they’ll redirect back to /order-status.
       window.location.href = url
     } catch (e) {
-      setSubmitError(e.message || 'Payment couldn’t be started. Please try again.')
+      setSubmitError(e.message || 'Payment couldn\'t be started. Please try again.')
       setSubmitting(false)
     }
   }
