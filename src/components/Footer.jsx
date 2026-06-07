@@ -3,7 +3,8 @@ import { LogoMark } from './Logo.jsx'
 
 const links = [
   { to: '/buy-data', label: 'Buy Data' },
-  { to: '/order-status', label: 'Track Order' },
+  { to: '/history', label: 'History' },
+  { to: '/refer', label: 'Refer' },
   { to: '/about', label: 'About' },
 ]
 

@@ -310,7 +310,7 @@ export default function Home() {
               <h1 className="mt-6 font-display text-5xl font-bold leading-[1.02] tracking-tight lg:text-6xl">
                 Pay anything.
                 <br />
-                <span className="text-gradient">Anytime.</span>
+                <RotatingWord />
               </h1>
               <p className="mt-5 max-w-md text-lg leading-relaxed text-muted">
                 Buy MTN, Telecel &amp; AirtelTigo bundles in seconds. No app, no login — just pick, pay, done.
@@ -403,6 +403,31 @@ export default function Home() {
                 <p className="max-w-[12rem] font-semibold leading-snug">{t.title}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* BECOME AN AGENT */}
+        <section className="wrap py-20">
+          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-10 text-center shadow-card">
+            <div className="glow-mesh pointer-events-none absolute inset-0" />
+            <div className="relative mx-auto max-w-xl">
+              <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-brand/10 text-brand">
+                <BriefcaseIcon className="h-7 w-7" />
+              </span>
+              <h2 className="mt-5 font-display text-3xl font-bold tracking-tight">Become an Agent</h2>
+              <p className="mt-3 text-muted">
+                Open your own data store, set your own prices, and earn on every sale. One-time setup
+                from {formatCedis(60)}.
+              </p>
+              <div className="mt-7 flex items-center justify-center gap-3">
+                <Button to="/agent" size="lg" iconRight={<ArrowRightIcon className="h-5 w-5" />}>
+                  Become an Agent
+                </Button>
+                <Button to="/refer" variant="outline" size="lg">
+                  Refer &amp; earn
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
       </div>
