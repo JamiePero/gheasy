@@ -1,37 +1,32 @@
-// Inline, file-free network brand marks, drawn in the network's ink colour so
-// they sit cleanly on the gradient card. If you drop the official PNGs into
-// /public (e.g. /logo-mtn.png) you can swap these for <img> later.
+// Real network brand logos (trimmed, transparent PNGs in /public).
+// - MTN (black) sits on the gold gradient
+// - Telecel (white) sits on the red gradient
+// - AirtelTigo "at" (multi-colour) gets a white chip so it stays legible on
+//   the red→blue gradient
+const SRC = {
+  mtn: '/net-mtn.png',
+  telecel: '/net-telecel.png',
+  airteltigo_ishare: '/net-at.png',
+  airteltigo_bigtime: '/net-at.png',
+}
+
 export default function NetworkLogo({ network, className = '' }) {
-  const id = network.id
-  const ink = network.ink
+  const src = SRC[network.id] || '/net-at.png'
 
-  if (id === 'mtn') {
+  if (network.id.startsWith('airteltigo')) {
     return (
-      <span
-        className={`inline-flex items-center justify-center rounded-[50%] border-[3px] px-3.5 py-1 font-display text-lg font-extrabold leading-none tracking-tight ${className}`}
-        style={{ borderColor: ink, color: ink }}
-      >
-        MTN
+      <span className={`grid place-items-center rounded-2xl bg-white px-3 py-2 shadow-sm ${className}`}>
+        <img src={src} alt={network.label} className="h-12 w-auto object-contain" draggable="false" />
       </span>
     )
   }
 
-  if (id === 'telecel') {
-    return (
-      <span
-        className={`font-display text-2xl font-extrabold lowercase leading-none ${className}`}
-        style={{ color: ink }}
-      >
-        telecel
-      </span>
-    )
-  }
-
-  // AirtelTigo (iShare + Bigtime)
   return (
-    <span className={`text-center leading-none ${className}`} style={{ color: ink }}>
-      <span className="font-display text-3xl font-extrabold lowercase tracking-tight">at</span>
-      <span className="mt-1 block text-[8px] font-medium italic opacity-90">life is simple</span>
-    </span>
+    <img
+      src={src}
+      alt={network.label}
+      className={`${network.id === 'mtn' ? 'h-10' : 'h-11'} w-auto object-contain ${className}`}
+      draggable="false"
+    />
   )
 }
