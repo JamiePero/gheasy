@@ -11,9 +11,12 @@ import { track } from '../lib/analytics.js'
 import { getProfile, saveOrder, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
+  detectNetworkFamily,
+  familyLabel,
   formatCedis,
   getNetwork,
   isValidGhPhone,
+  networkFamily,
   normalizePhone,
   prettyPhone,
 } from '../lib/format.js'
@@ -25,7 +28,11 @@ import {
   ShieldIcon,
 } from '../components/icons.jsx'
 
-const validNetwork = (id) => (NETWORKS.some((n) => n.id === id) ? id : 'mtn')
+const validNetwork = (id) => {
+  if (NETWORKS.some((n) => n.id === id)) return id
+  if (String(id || '').startsWith('airteltigo')) return 'airteltigo_ishare'
+  return 'mtn'
+}
 
 function BundleSkeleton() {
   return (
@@ -85,8 +92,15 @@ export default function BuyData() {
   )
 
   const phoneValid = isValidGhPhone(phone)
-  const phoneError = triedSubmit && !phoneValid ? 'Enter a valid Ghana number (e.g. 024 123 4567).' : ''
-  const canPay = phoneValid && !!selectedBundle && !submitting
+  const detectedFam = detectNetworkFamily(phone)
+  const selectedFam = networkFamily(network)
+  const mismatch = phoneValid && detectedFam && selectedFam && detectedFam !== selectedFam
+  const phoneError = mismatch
+    ? `This looks like a ${familyLabel(detectedFam)} number — switch network or check it.`
+    : triedSubmit && !phoneValid
+      ? 'Enter a valid Ghana number (e.g. 024 123 4567).'
+      : ''
+  const canPay = phoneValid && !mismatch && !!selectedBundle && !submitting
   const net = getNetwork(network)
 
   const reload = () => setReloadFlag((f) => f + 1)
@@ -94,8 +108,8 @@ export default function BuyData() {
   async function handlePay() {
     setSubmitError('')
     setTriedSubmit(true)
-    if (!phoneValid || !selectedBundle) {
-      if (!selectedBundle) setSubmitError('Pick a bundle to continue.')
+    if (!phoneValid || mismatch || !selectedBundle) {
+      if (phoneValid && !mismatch && !selectedBundle) setSubmitError('Pick a bundle to continue.')
       return
     }
     setSubmitting(true)

@@ -15,15 +15,22 @@ const num = (v) => {
 
 // --- Bundles ---------------------------------------------------------------
 
+// Prefer the human size in the bundle name (handles 1000MB vs 1024MB providers),
+// then gbAmount, then a MB→GB conversion. Never show raw MB for full-GB bundles.
+function deriveVolumeLabel(b) {
+  const name = String(b.name || '')
+  const gb = name.match(/(\d+(?:\.\d+)?)\s*GB/i)
+  if (gb) return `${Math.round(parseFloat(gb[1]))}GB`
+  const mb = name.match(/(\d+)\s*MB/i)
+  if (mb) return `${mb[1]}MB`
+  if (b.gbAmount) return `${Math.round(b.gbAmount)}GB`
+  return formatVolume(b.volumeInMB) || name || ''
+}
+
 function normalizeBundle(b, i) {
   // Always price from `sellPrice` — never `price`.
   const sellPrice = num(b.sellPrice)
-  // Never show raw MB: convert volumeInMB → GB (or MB under 1GB).
-  const volume =
-    formatVolume(b.volumeInMB) ||
-    (b.gbAmount ? `${Math.round(b.gbAmount)}GB` : '') ||
-    b.name ||
-    ''
+  const volume = deriveVolumeLabel(b)
   return {
     id: b.id || b._id || `${b.network || ''}-${b.name || volume}-${i}`,
     network: b.network,

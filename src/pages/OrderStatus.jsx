@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
@@ -10,6 +10,7 @@ import { updateOrder } from '../lib/store.js'
 import { formatCedis, getNetwork, prettyPhone } from '../lib/format.js'
 import {
   AlertIcon,
+  ArrowLeftIcon,
   ArrowRightIcon,
   CheckIcon,
   ClockIcon,
@@ -75,6 +76,7 @@ function DetailRow({ label, children }) {
 
 export default function OrderStatus() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const redirectRef =
     searchParams.get('reference') || searchParams.get('trxref') || searchParams.get('ref') || ''
 
@@ -163,7 +165,13 @@ export default function OrderStatus() {
   const settling = order && (order.status === 'pending' || order.status === 'processing')
 
   return (
-    <Page className="wrap-tight max-w-lg pb-12 pt-8 md:pt-14">
+    <Page className="wrap-tight max-w-lg pb-12 pt-6 md:pt-10">
+      <button
+        onClick={() => navigate(-1)}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
+      >
+        <ArrowLeftIcon className="h-4 w-4" /> Back
+      </button>
       <div className="text-center">
         <span className="inline-flex chip">
           <ReceiptIcon className="h-3.5 w-3.5 text-brand" /> Order status

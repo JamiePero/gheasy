@@ -4,6 +4,7 @@
 const ORDERS_KEY = 'gheasy-orders'
 const PROFILE_KEY = 'gheasy-profile'
 const REFERRAL_KEY = 'gheasy-referral'
+const AGENT_KEY = 'gheasy-agent'
 
 function read(key, fallback) {
   try {
@@ -85,4 +86,16 @@ export function getReferralCode() {
     write(REFERRAL_KEY, code)
   }
   return code
+}
+
+// --- Agent store -----------------------------------------------------------
+
+export function getAgentStore() {
+  return read(AGENT_KEY, null)
+}
+
+export function saveAgentStore(store) {
+  const next = { ...(read(AGENT_KEY, {}) || {}), ...store }
+  write(AGENT_KEY, next)
+  return next
 }

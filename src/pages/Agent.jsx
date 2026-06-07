@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import { NETWORKS, isValidGhPhone } from '../lib/format.js'
+import { AGENT_BASE_PRICE, AGENT_FEE, firstName, formatCedis, isValidGhPhone } from '../lib/format.js'
+import { getAgentStore, saveAgentStore } from '../lib/store.js'
 import { track } from '../lib/analytics.js'
 import {
   ArrowLeftIcon,
@@ -19,16 +20,10 @@ import {
 const WHATSAPP = '233000000000'
 
 const benefits = [
-  { Icon: WalletIcon, title: 'Wholesale prices', text: 'Buy at agent rates and keep the margin on every sale.' },
+  { Icon: WalletIcon, title: 'Custom pricing', text: 'Set your own price per GB and keep the margin on every sale.' },
   { Icon: BoltIcon, title: 'Instant delivery', text: 'Bundles drop in seconds, so your customers never wait.' },
-  { Icon: ChartIcon, title: 'Earn commission', text: 'The more you sell, the more you make. Simple as that.' },
+  { Icon: ChartIcon, title: 'Earn commission', text: 'The more you sell, the more you make. No limits.' },
   { Icon: HeadsetIcon, title: 'Priority support', text: 'A dedicated agent line whenever you need a hand.' },
-]
-
-const steps = [
-  'Register your details below',
-  'We verify and activate your agent account',
-  'Start selling data and earning commission',
 ]
 
 const inputCls = (err) =>
@@ -36,32 +31,93 @@ const inputCls = (err) =>
     err ? 'border-red-400' : 'border-border focus:border-brand'
   }`
 
-function Field({ label, value, onChange, placeholder, error, ...rest }) {
+function Field({ label, value, onChange, placeholder, error, hint, ...rest }) {
   return (
     <div>
       <label className="mb-2 block text-sm font-semibold">{label}</label>
       <input value={value} onChange={onChange} placeholder={placeholder} className={inputCls(!!error)} {...rest} />
-      {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
+      {error ? (
+        <p className="mt-1.5 text-xs text-red-500">{error}</p>
+      ) : hint ? (
+        <p className="mt-1.5 text-xs text-muted">{hint}</p>
+      ) : null}
+    </div>
+  )
+}
+
+function StoreSummary({ store }) {
+  const margin = Math.max(0, Number(store.price) - AGENT_BASE_PRICE)
+  return (
+    <div className="rounded-3xl border border-brand/40 bg-brand/[0.07] p-6 text-center">
+      <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand text-white">
+        <CheckIcon className="h-7 w-7" strokeWidth={3} />
+      </span>
+      <p className="mt-4 font-display text-xl font-bold">{store.storeName}</p>
+      <p className="text-sm text-muted">Your store is ready to go live</p>
+
+      <dl className="mt-5 space-y-2 rounded-2xl border border-border bg-card p-4 text-left text-sm">
+        <div className="flex justify-between">
+          <dt className="text-muted">Owner</dt>
+          <dd className="font-semibold">{store.name}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-muted">Your price / GB</dt>
+          <dd className="font-semibold tnum">{formatCedis(store.price)}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt className="text-muted">You earn / GB</dt>
+          <dd className="font-bold tnum text-brand">{formatCedis(margin)}</dd>
+        </div>
+      </dl>
+
+      <div className="mt-5 rounded-2xl border border-dashed border-brand/50 p-4">
+        <p className="text-sm font-semibold">One-time activation fee</p>
+        <p className="font-display text-3xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
+        <p className="mt-1 text-xs text-muted">Pay once to take your store live — no monthly charges.</p>
+      </div>
+
+      <Button
+        href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
+          `Hi, I want to activate my easy store "${store.storeName}" (one-time ${formatCedis(AGENT_FEE)} fee).`,
+        )}`}
+        className="mt-5 w-full"
+        icon={<HeadsetIcon className="h-5 w-5" />}
+      >
+        Pay {formatCedis(AGENT_FEE)} to activate
+      </Button>
+      <p className="mt-3 text-xs text-muted">We’ll confirm payment and switch your store on right away.</p>
     </div>
   )
 }
 
 export default function Agent() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ name: '', phone: '', area: '', network: 'mtn' })
+  const [created, setCreated] = useState(() => getAgentStore())
+  const [form, setForm] = useState({ storeName: '', name: '', phone: '', price: '4.80' })
   const [tried, setTried] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
 
+  const priceNum = parseFloat(form.price)
   const phoneOk = isValidGhPhone(form.phone)
-  const valid = form.name.trim() && phoneOk && form.area.trim()
+  const priceOk = Number.isFinite(priceNum) && priceNum > AGENT_BASE_PRICE
+  const valid = form.storeName.trim() && form.name.trim() && phoneOk && priceOk
+  const margin = priceOk ? priceNum - AGENT_BASE_PRICE : 0
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const submit = (e) => {
+  const create = (e) => {
     e.preventDefault()
     setTried(true)
     if (!valid) return
-    track('agent_signup', { network: form.network, area: form.area })
-    setSubmitted(true)
+    const record = {
+      storeName: form.storeName.trim(),
+      name: form.name.trim(),
+      phone: form.phone,
+      price: priceNum,
+      status: 'pending_fee',
+      createdAt: Date.now(),
+    }
+    saveAgentStore(record)
+    track('agent_store_created', { store: record.storeName, price: priceNum })
+    setCreated(record)
   }
 
   return (
@@ -80,98 +136,106 @@ export default function Agent() {
             <BriefcaseIcon className="h-6 w-6" />
           </span>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">Become an Agent</h1>
-          <p className="mt-1 text-sm text-muted">Resell data with easy and earn on every single sale.</p>
+          <p className="mt-1 text-sm text-muted">
+            {created
+              ? `Welcome back, ${firstName(created.name)} — here’s your store.`
+              : 'Open your own data store, set your prices, and earn on every sale.'}
+          </p>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        {benefits.map((b) => (
-          <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
-              <b.Icon className="h-5 w-5" />
-            </span>
-            <p className="mt-3 text-sm font-bold">{b.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
-          </div>
-        ))}
-      </div>
-
-      <h2 className="mt-7 text-sm font-bold">How it works</h2>
-      <ol className="mt-3 space-y-3">
-        {steps.map((s, i) => (
-          <li key={i} className="flex items-start gap-3">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-white">
-              {i + 1}
-            </span>
-            <span className="pt-0.5 text-sm text-muted">{s}</span>
-          </li>
-        ))}
-      </ol>
-
-      {submitted ? (
-        <div className="mt-7 rounded-3xl border border-brand/40 bg-brand/[0.07] p-6 text-center">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand text-white">
-            <CheckIcon className="h-7 w-7" strokeWidth={3} />
-          </span>
-          <p className="mt-4 font-bold">Application received 🎉</p>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-muted">
-            Thanks {form.name.trim().split(' ')[0]}! Our team will reach out shortly to activate your agent
-            account.
-          </p>
-          <Button
-            href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi, I just applied to become an easy agent.')}`}
-            className="mt-5"
-            icon={<HeadsetIcon className="h-5 w-5" />}
+      {created ? (
+        <div className="mt-5">
+          <StoreSummary store={created} />
+          <button
+            onClick={() => setCreated(null)}
+            className="mt-4 w-full text-center text-sm font-medium text-muted transition-colors hover:text-brand"
           >
-            Chat with us on WhatsApp
-          </Button>
+            Edit store details
+          </button>
         </div>
       ) : (
-        <form onSubmit={submit} className="mt-7 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
-          <h2 className="text-lg font-bold">Apply now</h2>
-          <Field
-            label="Full name"
-            value={form.name}
-            onChange={set('name')}
-            placeholder="Your full name"
-            error={tried && !form.name.trim() ? 'Required' : ''}
-          />
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Phone number</label>
-            <input
-              value={form.phone}
-              onChange={set('phone')}
-              inputMode="numeric"
-              placeholder="024 123 4567"
-              className={inputCls(tried && !phoneOk)}
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {benefits.map((b) => (
+              <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
+                  <b.Icon className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-sm font-bold">{b.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={create} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+            <div>
+              <h2 className="text-lg font-bold">Create your store</h2>
+              <p className="mt-0.5 text-sm text-muted">No application — set up in under a minute.</p>
+            </div>
+
+            <Field
+              label="Store name"
+              value={form.storeName}
+              onChange={set('storeName')}
+              placeholder="e.g. Jamie's Data Hub"
+              error={tried && !form.storeName.trim() ? 'Required' : ''}
             />
-            {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
-          </div>
-          <Field
-            label="Area / town"
-            value={form.area}
-            onChange={set('area')}
-            placeholder="e.g. Sunyani"
-            error={tried && !form.area.trim() ? 'Required' : ''}
-          />
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Main network</label>
-            <select value={form.network} onChange={set('network')} className={inputCls(false)}>
-              {NETWORKS.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.label}
-                </option>
-              ))}
-              <option value="all">All networks</option>
-            </select>
-          </div>
-          <Button type="submit" size="lg" className="w-full">
-            Submit application
-          </Button>
-          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-            <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> We’ll only use your details to set up your account.
-          </p>
-        </form>
+            <Field
+              label="Your name"
+              value={form.name}
+              onChange={set('name')}
+              placeholder="Full name"
+              error={tried && !form.name.trim() ? 'Required' : ''}
+            />
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Phone number</label>
+              <input
+                value={form.phone}
+                onChange={set('phone')}
+                inputMode="numeric"
+                placeholder="024 123 4567"
+                className={inputCls(tried && !phoneOk)}
+              />
+              {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Your price per 1GB (GHS)</label>
+              <input
+                value={form.price}
+                onChange={set('price')}
+                inputMode="decimal"
+                placeholder="4.80"
+                className={inputCls(tried && !priceOk)}
+              />
+              {tried && !priceOk ? (
+                <p className="mt-1.5 text-xs text-red-500">
+                  Price must be above {formatCedis(AGENT_BASE_PRICE)}.
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-muted">
+                  Floor is {formatCedis(AGENT_BASE_PRICE)} — you earn{' '}
+                  <span className="font-semibold text-brand">{formatCedis(margin)}</span> per GB sold.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
+              <div>
+                <p className="text-sm font-semibold">One-time setup fee</p>
+                <p className="text-xs text-muted">Pay once — your store is yours for good.</p>
+              </div>
+              <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
+            </div>
+
+            <Button type="submit" size="lg" className="w-full">
+              Create my store — {formatCedis(AGENT_FEE)}
+            </Button>
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+              <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> Secured by Paystack. No monthly fees.
+            </p>
+          </form>
+        </>
       )}
     </Page>
   )

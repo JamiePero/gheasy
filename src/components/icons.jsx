@@ -240,3 +240,18 @@ export const HeadsetIcon = make(
     <path d="M20 19.5a3 3 0 0 1-3 3h-2.5" />
   </>,
 )
+
+export const CartIcon = make(
+  <>
+    <path d="M2.5 3.5h2l2.2 11.4a1.4 1.4 0 0 0 1.4 1.1h8.3a1.4 1.4 0 0 0 1.4-1.1L20.5 7.5H6" />
+    <circle cx="9.5" cy="20" r="1.4" fill="currentColor" stroke="none" />
+    <circle cx="17" cy="20" r="1.4" fill="currentColor" stroke="none" />
+  </>,
+)
+
+export const CameraIcon = make(
+  <>
+    <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2L8 5h8l1.5 2h2A1.5 1.5 0 0 1 21 8.5V18a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18Z" />
+    <circle cx="12" cy="13" r="3.2" />
+  </>,
+)

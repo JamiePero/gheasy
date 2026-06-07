@@ -1,13 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
-import { LogoMark } from '../components/Logo.jsx'
+import Avatar, { fileToAvatar } from '../components/Avatar.jsx'
 import { getProfile, saveProfile } from '../lib/store.js'
 import { isValidGhPhone } from '../lib/format.js'
 import {
   BriefcaseIcon,
+  CameraIcon,
   CheckIcon,
   ChevronRightIcon,
   GiftIcon,
@@ -33,6 +34,7 @@ const inp = (err) =>
 export default function More() {
   const [profile, setProfile] = useState(() => getProfile())
   const [saved, setSaved] = useState(false)
+  const fileRef = useRef(null)
   const phoneOk = !profile.phone || isValidGhPhone(profile.phone)
   const set = (k) => (e) => setProfile((p) => ({ ...p, [k]: e.target.value }))
 
@@ -43,14 +45,35 @@ export default function More() {
     setTimeout(() => setSaved(false), 1500)
   }
 
+  const onPickAvatar = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    fileToAvatar(file, (dataUrl) => {
+      setProfile((p) => ({ ...p, avatar: dataUrl }))
+      saveProfile({ avatar: dataUrl })
+    })
+    e.target.value = ''
+  }
+
   return (
     <Page className="wrap-app pb-12 pt-6">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">More</h1>
       <p className="text-sm text-muted">Your account &amp; shortcuts</p>
 
-      {/* Identity */}
+      {/* Identity + avatar upload */}
       <div className="mt-5 flex items-center gap-4 rounded-3xl border border-border bg-card p-5 shadow-card">
-        <LogoMark className="h-14 w-14" />
+        <div className="relative">
+          <Avatar src={profile.avatar} className="h-16 w-16" />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            aria-label="Change profile picture"
+            className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-brand text-white ring-2 ring-card transition-transform active:scale-90"
+          >
+            <CameraIcon className="h-4 w-4" />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickAvatar} />
+        </div>
         <div className="min-w-0">
           <p className="truncate font-display text-lg font-bold">{profile.name?.trim() || 'Guest'}</p>
           <p className="truncate text-sm text-muted">{profile.phone?.trim() || 'No phone saved'}</p>

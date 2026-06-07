@@ -1,19 +1,18 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { DataIcon, GiftIcon, GridIcon, HomeIcon, ReceiptIcon } from './icons.jsx'
+import { CartIcon, GridIcon, HomeIcon, ReceiptIcon } from './icons.jsx'
 
 const tabs = [
   { to: '/', label: 'Home', Icon: HomeIcon, end: true },
-  { to: '/buy-data', label: 'Buy', Icon: DataIcon },
+  { to: '/buy-data', label: 'Buy', Icon: CartIcon },
   { to: '/history', label: 'History', Icon: ReceiptIcon },
-  { to: '/refer', label: 'Refer', Icon: GiftIcon },
   { to: '/more', label: 'More', Icon: GridIcon },
 ]
 
 export default function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 glass safe-bottom md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5">
+      <div className="mx-auto grid max-w-md grid-cols-4">
         {tabs.map(({ to, label, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className="relative flex flex-col items-center gap-1 py-2.5">
             {({ isActive }) => (

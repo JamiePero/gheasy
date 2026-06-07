@@ -30,9 +30,7 @@ export default function BundleCard({ bundle, active, onSelect }) {
         </span>
       </div>
       <span className="mt-1.5 line-clamp-1 text-xs text-muted">{subtitle}</span>
-      <span className="mt-3 text-lg font-bold tnum" style={{ color: style.price }}>
-        {formatCedis(bundle.sellPrice)}
-      </span>
+      <span className="mt-3 text-lg font-bold tnum text-fg">{formatCedis(bundle.sellPrice)}</span>
     </motion.button>
   )
 
