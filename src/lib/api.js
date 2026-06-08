@@ -106,32 +106,45 @@ export async function initiatePurchase({ recipientPhone, networkType, volumeInMB
   return data
 }
 
-// --- Agent registration ----------------------------------------------------
+// --- Agent auth -------------------------------------------------------------
+
+// Shared POST helper for /gheasy/auth/*. On failure it throws an Error whose
+// `.status` carries the HTTP code so callers can branch (e.g. 409 = exists,
+// 403 = joining fee unpaid).
+async function agentAuthPost(path, body) {
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    throw new Error('Network error — check your connection and try again.')
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) {
+    const err = new Error(data.error || 'Something went wrong. Please try again.')
+    err.status = res.status
+    throw err
+  }
+  return data
+}
 
 // Send the SMS verification code for agent sign-up.
-export async function sendAgentOtp(phone) {
-  const res = await fetch(`${BASE}/gheasy/auth/send-otp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!data.success) throw new Error(data.error || 'Could not send the code. Try again.')
-  return data
-}
+export const sendAgentOtp = (phone) => agentAuthPost('/gheasy/auth/send-otp', { phone })
 
-// Register an agent. Backend creates the (pending) account and returns a
-// Paystack { paymentUrl } for the GHS joining fee.
-export async function registerAgent({ phone, pin, storeName, otp }) {
-  const res = await fetch(`${BASE}/gheasy/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone, pin, storeName, otp }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!data.success) throw new Error(data.error || 'Registration failed.')
-  return data
-}
+// Register an agent → returns { paymentUrl } for the GHS joining fee (409 if the
+// phone already has an account).
+export const registerAgent = ({ phone, pin, storeName, otp }) =>
+  agentAuthPost('/gheasy/auth/register', { phone, pin, storeName, otp })
+
+// Log an agent in → { token, agent } (403 if joining fee unpaid / blocked).
+export const loginAgent = ({ phone, pin }) => agentAuthPost('/gheasy/auth/login', { phone, pin })
+
+// Restart the joining-fee checkout for a pending agent → { paymentUrl }.
+export const resendAgentPayment = ({ phone, pin }) =>
+  agentAuthPost('/gheasy/auth/resend-payment', { phone, pin })
 
 // --- Order status ----------------------------------------------------------
 

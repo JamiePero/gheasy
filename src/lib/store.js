@@ -99,3 +99,18 @@ export function saveAgentStore(store) {
   write(AGENT_KEY, next)
   return next
 }
+
+// --- Agent session (login token + profile) ---------------------------------
+const AGENT_SESSION_KEY = 'gheasy-agent-session'
+
+export function getAgentSession() {
+  return read(AGENT_SESSION_KEY, null)
+}
+
+export function saveAgentSession(session) {
+  write(AGENT_SESSION_KEY, session)
+}
+
+export function clearAgentSession() {
+  write(AGENT_SESSION_KEY, null)
+}

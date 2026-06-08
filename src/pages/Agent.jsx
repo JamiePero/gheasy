@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { registerAgent, sendAgentOtp } from '../lib/api.js'
@@ -40,6 +40,7 @@ function ErrorNote({ children }) {
 export default function Agent() {
   const navigate = useNavigate()
   const [step, setStep] = useState('details') // 'details' | 'otp'
+  const [existing, setExisting] = useState(false) // phone already registered
   const [form, setForm] = useState({ storeName: '', phone: '', pin: '' })
   const [otp, setOtp] = useState('')
   const [tried, setTried] = useState(false)
@@ -51,7 +52,6 @@ export default function Agent() {
   const detailsValid = form.storeName.trim() && phoneOk && pinOk
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  // Step 1 → send the SMS verification code
   const sendOtp = async (e) => {
     e.preventDefault()
     setTried(true)
@@ -69,7 +69,6 @@ export default function Agent() {
     }
   }
 
-  // Step 2 → register, then hand off to Paystack for the joining fee
   const register = async (e) => {
     e.preventDefault()
     setError('')
@@ -87,10 +86,14 @@ export default function Agent() {
       })
       track('agent_registered', {})
       if (!data.paymentUrl) throw new Error('No payment link was returned. Please try again.')
-      // Redirect to Paystack to pay the joining fee (NOT WhatsApp).
       window.location.href = data.paymentUrl
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.')
+      if (err.status === 409) {
+        // Phone already has an account — send them to login instead.
+        setExisting(true)
+      } else {
+        setError(err.message || 'Registration failed. Please try again.')
+      }
       setLoading(false)
     }
   }
@@ -117,131 +120,163 @@ export default function Agent() {
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        {benefits.map((b) => (
-          <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
-              <b.Icon className="h-5 w-5" />
-            </span>
-            <p className="mt-3 text-sm font-bold">{b.title}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
-          </div>
-        ))}
-      </div>
-
-      {step === 'details' ? (
-        <form onSubmit={sendOtp} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
-          <div>
-            <h2 className="text-lg font-bold">Create your account</h2>
-            <p className="mt-0.5 text-sm text-muted">We’ll text a code to verify your number.</p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Store name</label>
-            <input
-              value={form.storeName}
-              onChange={set('storeName')}
-              placeholder="e.g. Jamie's Data Hub"
-              maxLength={50}
-              className={inputCls(tried && !form.storeName.trim())}
-            />
-            {tried && !form.storeName.trim() && <p className="mt-1.5 text-xs text-red-500">Required</p>}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Phone number</label>
-            <input
-              value={form.phone}
-              onChange={set('phone')}
-              inputMode="numeric"
-              autoComplete="tel"
-              placeholder="024 123 4567"
-              className={inputCls(tried && !phoneOk)}
-            />
-            {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Choose a 4-digit PIN</label>
-            <input
-              value={form.pin}
-              onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
-              inputMode="numeric"
-              type="password"
-              autoComplete="new-password"
-              placeholder="••••"
-              maxLength={4}
-              className={`${inputCls(tried && !pinOk)} tracking-[0.5em]`}
-            />
-            {tried && !pinOk ? (
-              <p className="mt-1.5 text-xs text-red-500">PIN must be exactly 4 digits.</p>
-            ) : (
-              <p className="mt-1.5 text-xs text-muted">You’ll use this to log in to your store.</p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
-            <div>
-              <p className="text-sm font-semibold">One-time joining fee</p>
-              <p className="text-xs text-muted">Paid via Paystack after you verify.</p>
-            </div>
-            <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
-          </div>
-
-          <ErrorNote>{error}</ErrorNote>
-
-          <Button type="submit" size="lg" loading={loading} className="w-full">
-            Continue
+      {existing ? (
+        // ── Already registered → go to login ──
+        <div className="mt-5 rounded-3xl border border-border bg-card p-6 text-center shadow-card">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand/10 text-brand">
+            <BriefcaseIcon className="h-7 w-7" />
+          </span>
+          <h2 className="mt-4 text-xl font-bold">You already have an easy account</h2>
+          <p className="mx-auto mt-1 max-w-xs text-sm text-muted">
+            An account with <span className="font-semibold text-fg">{form.phone}</span> already exists.
+            Please log in instead.
+          </p>
+          <Button to="/agent/login" size="lg" className="mt-5 w-full">
+            Log in
           </Button>
-        </form>
+          <button
+            onClick={() => { setExisting(false); setStep('details'); setOtp(''); setError(''); }}
+            className="mt-3 text-sm font-medium text-muted transition-colors hover:text-fg"
+          >
+            Use a different number
+          </button>
+        </div>
       ) : (
-        <form onSubmit={register} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
-          <div>
-            <h2 className="text-lg font-bold">Verify your number</h2>
-            <p className="mt-0.5 text-sm text-muted">
-              Enter the code we sent to <span className="font-semibold text-fg">{form.phone}</span>.
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-semibold">Verification code</label>
-            <input
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="● ● ● ●"
-              className={`${inputCls(false)} text-center text-lg tracking-[0.4em]`}
-            />
-          </div>
-
-          <ErrorNote>{error}</ErrorNote>
-
-          <Button type="submit" size="lg" loading={loading} className="w-full">
-            Pay {formatCedis(AGENT_FEE)} &amp; activate
-          </Button>
-          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-            <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> You’ll be redirected to Paystack to pay securely.
+        <>
+          <p className="mt-3 text-center text-sm text-muted">
+            Already an agent?{' '}
+            <Link to="/agent/login" className="font-semibold text-brand">
+              Log in
+            </Link>
           </p>
 
-          <div className="flex items-center justify-between pt-1 text-xs">
-            <button
-              type="button"
-              onClick={() => { setStep('details'); setError(''); }}
-              className="font-medium text-muted transition-colors hover:text-fg"
-            >
-              ← Change details
-            </button>
-            <button
-              type="button"
-              onClick={sendOtp}
-              disabled={loading}
-              className="font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-50"
-            >
-              Resend code
-            </button>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {benefits.map((b) => (
+              <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
+                  <b.Icon className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-sm font-bold">{b.title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
+              </div>
+            ))}
           </div>
-        </form>
+
+          {step === 'details' ? (
+            <form onSubmit={sendOtp} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+              <div>
+                <h2 className="text-lg font-bold">Create your account</h2>
+                <p className="mt-0.5 text-sm text-muted">We’ll text a code to verify your number.</p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Store name</label>
+                <input
+                  value={form.storeName}
+                  onChange={set('storeName')}
+                  placeholder="e.g. Jamie's Data Hub"
+                  maxLength={50}
+                  className={inputCls(tried && !form.storeName.trim())}
+                />
+                {tried && !form.storeName.trim() && <p className="mt-1.5 text-xs text-red-500">Required</p>}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Phone number</label>
+                <input
+                  value={form.phone}
+                  onChange={set('phone')}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="024 123 4567"
+                  className={inputCls(tried && !phoneOk)}
+                />
+                {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Choose a 4-digit PIN</label>
+                <input
+                  value={form.pin}
+                  onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                  inputMode="numeric"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="••••"
+                  maxLength={4}
+                  className={`${inputCls(tried && !pinOk)} tracking-[0.5em]`}
+                />
+                {tried && !pinOk ? (
+                  <p className="mt-1.5 text-xs text-red-500">PIN must be exactly 4 digits.</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-muted">You’ll use this to log in to your store.</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
+                <div>
+                  <p className="text-sm font-semibold">One-time joining fee</p>
+                  <p className="text-xs text-muted">Paid via Paystack after you verify.</p>
+                </div>
+                <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
+              </div>
+
+              <ErrorNote>{error}</ErrorNote>
+
+              <Button type="submit" size="lg" loading={loading} className="w-full">
+                Continue
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={register} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+              <div>
+                <h2 className="text-lg font-bold">Verify your number</h2>
+                <p className="mt-0.5 text-sm text-muted">
+                  Enter the code we sent to <span className="font-semibold text-fg">{form.phone}</span>.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Verification code</label>
+                <input
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="● ● ● ●"
+                  className={`${inputCls(false)} text-center text-lg tracking-[0.4em]`}
+                />
+              </div>
+
+              <ErrorNote>{error}</ErrorNote>
+
+              <Button type="submit" size="lg" loading={loading} className="w-full">
+                Pay {formatCedis(AGENT_FEE)} &amp; activate
+              </Button>
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+                <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> You’ll be redirected to Paystack to pay securely.
+              </p>
+
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setStep('details'); setError(''); }}
+                  className="font-medium text-muted transition-colors hover:text-fg"
+                >
+                  ← Change details
+                </button>
+                <button
+                  type="button"
+                  onClick={sendOtp}
+                  disabled={loading}
+                  className="font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-50"
+                >
+                  Resend code
+                </button>
+              </div>
+            </form>
+          )}
+        </>
       )}
     </Page>
   )

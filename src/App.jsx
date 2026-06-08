@@ -12,6 +12,8 @@ import History from './pages/History.jsx'
 import OrderStatus from './pages/OrderStatus.jsx'
 import Refer from './pages/Refer.jsx'
 import Agent from './pages/Agent.jsx'
+import AgentLogin from './pages/AgentLogin.jsx'
+import AgentDashboard from './pages/AgentDashboard.jsx'
 import More from './pages/More.jsx'
 import About from './pages/About.jsx'
 import NotFound from './pages/NotFound.jsx'
@@ -33,6 +35,8 @@ export default function App() {
             <Route path="/order-status" element={<OrderStatus />} />
             <Route path="/refer" element={<Refer />} />
             <Route path="/agent" element={<Agent />} />
+            <Route path="/agent/login" element={<AgentLogin />} />
+            <Route path="/agent/dashboard" element={<AgentDashboard />} />
             <Route path="/more" element={<More />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
