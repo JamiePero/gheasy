@@ -147,7 +147,7 @@ export default function BuyData() {
   }
 
   return (
-    <Page className="wrap max-w-5xl pb-32 pt-6 md:pb-10 md:pt-10">
+    <Page className="wrap max-w-5xl pb-40 pt-6 md:pb-10 md:pt-10">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -300,7 +300,7 @@ export default function BuyData() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="fixed inset-x-3 bottom-[76px] z-40 md:hidden"
+            className="fixed inset-x-3 bottom-[96px] z-40 md:hidden"
           >
             <div className="flex items-center gap-3 rounded-3xl border border-border glass p-2.5 pl-4 shadow-2xl">
               <div className="min-w-0 flex-1">

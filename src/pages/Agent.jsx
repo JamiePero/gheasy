@@ -2,28 +2,24 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import { AGENT_BASE_PRICE, AGENT_FEE, firstName, formatCedis, isValidGhPhone } from '../lib/format.js'
-import { getAgentStore, saveAgentStore } from '../lib/store.js'
+import { registerAgent, sendAgentOtp } from '../lib/api.js'
+import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { track } from '../lib/analytics.js'
 import {
+  AlertIcon,
   ArrowLeftIcon,
   BoltIcon,
   BriefcaseIcon,
   ChartIcon,
-  CheckIcon,
-  HeadsetIcon,
   ShieldIcon,
   WalletIcon,
 } from '../components/icons.jsx'
-
-// Agent support WhatsApp number.
-const WHATSAPP = '233539255071'
 
 const benefits = [
   { Icon: WalletIcon, title: 'Custom pricing', text: 'Set your own price per GB and keep the margin on every sale.' },
   { Icon: BoltIcon, title: 'Instant delivery', text: 'Bundles drop in seconds, so your customers never wait.' },
   { Icon: ChartIcon, title: 'Earn commission', text: 'The more you sell, the more you make. No limits.' },
-  { Icon: HeadsetIcon, title: 'Priority support', text: 'A dedicated agent line whenever you need a hand.' },
+  { Icon: ShieldIcon, title: 'Secured by Paystack', text: 'A one-time GHS 60 joining fee — no monthly charges, ever.' },
 ]
 
 const inputCls = (err) =>
@@ -31,93 +27,72 @@ const inputCls = (err) =>
     err ? 'border-red-400' : 'border-border focus:border-brand'
   }`
 
-function Field({ label, value, onChange, placeholder, error, hint, ...rest }) {
+function ErrorNote({ children }) {
+  if (!children) return null
   return (
-    <div>
-      <label className="mb-2 block text-sm font-semibold">{label}</label>
-      <input value={value} onChange={onChange} placeholder={placeholder} className={inputCls(!!error)} {...rest} />
-      {error ? (
-        <p className="mt-1.5 text-xs text-red-500">{error}</p>
-      ) : hint ? (
-        <p className="mt-1.5 text-xs text-muted">{hint}</p>
-      ) : null}
-    </div>
-  )
-}
-
-function StoreSummary({ store }) {
-  const margin = Math.max(0, Number(store.price) - AGENT_BASE_PRICE)
-  return (
-    <div className="rounded-3xl border border-brand/40 bg-brand/[0.07] p-6 text-center">
-      <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand text-white">
-        <CheckIcon className="h-7 w-7" strokeWidth={3} />
-      </span>
-      <p className="mt-4 font-display text-xl font-bold">{store.storeName}</p>
-      <p className="text-sm text-muted">Your store is ready to go live</p>
-
-      <dl className="mt-5 space-y-2 rounded-2xl border border-border bg-card p-4 text-left text-sm">
-        <div className="flex justify-between">
-          <dt className="text-muted">Owner</dt>
-          <dd className="font-semibold">{store.name}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted">Your price / GB</dt>
-          <dd className="font-semibold tnum">{formatCedis(store.price)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted">You earn / GB</dt>
-          <dd className="font-bold tnum text-brand">{formatCedis(margin)}</dd>
-        </div>
-      </dl>
-
-      <div className="mt-5 rounded-2xl border border-dashed border-brand/50 p-4">
-        <p className="text-sm font-semibold">One-time activation fee</p>
-        <p className="font-display text-3xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
-        <p className="mt-1 text-xs text-muted">Pay once to take your store live — no monthly charges.</p>
-      </div>
-
-      <Button
-        href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
-          `Hi, I want to activate my easy store "${store.storeName}" (one-time ${formatCedis(AGENT_FEE)} fee).`,
-        )}`}
-        className="mt-5 w-full"
-        icon={<HeadsetIcon className="h-5 w-5" />}
-      >
-        Pay {formatCedis(AGENT_FEE)} to activate
-      </Button>
-      <p className="mt-3 text-xs text-muted">We’ll confirm payment and switch your store on right away.</p>
-    </div>
+    <p className="flex items-start gap-1.5 rounded-xl bg-red-500/10 p-3 text-xs font-medium text-red-500">
+      <AlertIcon className="mt-px h-4 w-4 shrink-0" />
+      {children}
+    </p>
   )
 }
 
 export default function Agent() {
   const navigate = useNavigate()
-  const [created, setCreated] = useState(() => getAgentStore())
-  const [form, setForm] = useState({ storeName: '', name: '', phone: '', price: '4.80' })
+  const [step, setStep] = useState('details') // 'details' | 'otp'
+  const [form, setForm] = useState({ storeName: '', phone: '', pin: '' })
+  const [otp, setOtp] = useState('')
   const [tried, setTried] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const priceNum = parseFloat(form.price)
   const phoneOk = isValidGhPhone(form.phone)
-  const priceOk = Number.isFinite(priceNum) && priceNum > AGENT_BASE_PRICE
-  const valid = form.storeName.trim() && form.name.trim() && phoneOk && priceOk
-  const margin = priceOk ? priceNum - AGENT_BASE_PRICE : 0
+  const pinOk = /^\d{4}$/.test(form.pin)
+  const detailsValid = form.storeName.trim() && phoneOk && pinOk
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const create = (e) => {
+  // Step 1 → send the SMS verification code
+  const sendOtp = async (e) => {
     e.preventDefault()
     setTried(true)
-    if (!valid) return
-    const record = {
-      storeName: form.storeName.trim(),
-      name: form.name.trim(),
-      phone: form.phone,
-      price: priceNum,
-      status: 'pending_fee',
-      createdAt: Date.now(),
+    setError('')
+    if (!detailsValid) return
+    setLoading(true)
+    try {
+      await sendAgentOtp(normalizePhone(form.phone))
+      track('agent_otp_sent', {})
+      setStep('otp')
+    } catch (err) {
+      setError(err.message || 'Could not send the code. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    saveAgentStore(record)
-    track('agent_store_created', { store: record.storeName, price: priceNum })
-    setCreated(record)
+  }
+
+  // Step 2 → register, then hand off to Paystack for the joining fee
+  const register = async (e) => {
+    e.preventDefault()
+    setError('')
+    if (!/^\d{4,6}$/.test(otp.trim())) {
+      setError('Enter the verification code sent to your phone.')
+      return
+    }
+    setLoading(true)
+    try {
+      const data = await registerAgent({
+        phone: normalizePhone(form.phone),
+        pin: form.pin,
+        storeName: form.storeName.trim(),
+        otp: otp.trim(),
+      })
+      track('agent_registered', {})
+      if (!data.paymentUrl) throw new Error('No payment link was returned. Please try again.')
+      // Redirect to Paystack to pay the joining fee (NOT WhatsApp).
+      window.location.href = data.paymentUrl
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -137,105 +112,136 @@ export default function Agent() {
           </span>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">Become an Agent</h1>
           <p className="mt-1 text-sm text-muted">
-            {created
-              ? `Welcome back, ${firstName(created.name)} — here’s your store.`
-              : 'Open your own data store, set your prices, and earn on every sale.'}
+            Open your own data store, set your prices, and earn on every sale.
           </p>
         </div>
       </div>
 
-      {created ? (
-        <div className="mt-5">
-          <StoreSummary store={created} />
-          <button
-            onClick={() => setCreated(null)}
-            className="mt-4 w-full text-center text-sm font-medium text-muted transition-colors hover:text-brand"
-          >
-            Edit store details
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {benefits.map((b) => (
-              <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
-                  <b.Icon className="h-5 w-5" />
-                </span>
-                <p className="mt-3 text-sm font-bold">{b.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
-              </div>
-            ))}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        {benefits.map((b) => (
+          <div key={b.title} className="rounded-2xl border border-border bg-card p-4">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand">
+              <b.Icon className="h-5 w-5" />
+            </span>
+            <p className="mt-3 text-sm font-bold">{b.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">{b.text}</p>
+          </div>
+        ))}
+      </div>
+
+      {step === 'details' ? (
+        <form onSubmit={sendOtp} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+          <div>
+            <h2 className="text-lg font-bold">Create your account</h2>
+            <p className="mt-0.5 text-sm text-muted">We’ll text a code to verify your number.</p>
           </div>
 
-          <form onSubmit={create} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
-            <div>
-              <h2 className="text-lg font-bold">Create your store</h2>
-              <p className="mt-0.5 text-sm text-muted">No application — set up in under a minute.</p>
-            </div>
-
-            <Field
-              label="Store name"
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Store name</label>
+            <input
               value={form.storeName}
               onChange={set('storeName')}
               placeholder="e.g. Jamie's Data Hub"
-              error={tried && !form.storeName.trim() ? 'Required' : ''}
+              maxLength={50}
+              className={inputCls(tried && !form.storeName.trim())}
             />
-            <Field
-              label="Your name"
-              value={form.name}
-              onChange={set('name')}
-              placeholder="Full name"
-              error={tried && !form.name.trim() ? 'Required' : ''}
+            {tried && !form.storeName.trim() && <p className="mt-1.5 text-xs text-red-500">Required</p>}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Phone number</label>
+            <input
+              value={form.phone}
+              onChange={set('phone')}
+              inputMode="numeric"
+              autoComplete="tel"
+              placeholder="024 123 4567"
+              className={inputCls(tried && !phoneOk)}
             />
-            <div>
-              <label className="mb-2 block text-sm font-semibold">Phone number</label>
-              <input
-                value={form.phone}
-                onChange={set('phone')}
-                inputMode="numeric"
-                placeholder="024 123 4567"
-                className={inputCls(tried && !phoneOk)}
-              />
-              {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold">Your price per 1GB (GHS)</label>
-              <input
-                value={form.price}
-                onChange={set('price')}
-                inputMode="decimal"
-                placeholder="4.80"
-                className={inputCls(tried && !priceOk)}
-              />
-              {tried && !priceOk ? (
-                <p className="mt-1.5 text-xs text-red-500">
-                  Price must be above {formatCedis(AGENT_BASE_PRICE)}.
-                </p>
-              ) : (
-                <p className="mt-1.5 text-xs text-muted">
-                  Floor is {formatCedis(AGENT_BASE_PRICE)} — you earn{' '}
-                  <span className="font-semibold text-brand">{formatCedis(margin)}</span> per GB sold.
-                </p>
-              )}
-            </div>
+            {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
+          </div>
 
-            <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
-              <div>
-                <p className="text-sm font-semibold">One-time setup fee</p>
-                <p className="text-xs text-muted">Pay once — your store is yours for good.</p>
-              </div>
-              <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
-            </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Choose a 4-digit PIN</label>
+            <input
+              value={form.pin}
+              onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+              inputMode="numeric"
+              type="password"
+              autoComplete="new-password"
+              placeholder="••••"
+              maxLength={4}
+              className={`${inputCls(tried && !pinOk)} tracking-[0.5em]`}
+            />
+            {tried && !pinOk ? (
+              <p className="mt-1.5 text-xs text-red-500">PIN must be exactly 4 digits.</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-muted">You’ll use this to log in to your store.</p>
+            )}
+          </div>
 
-            <Button type="submit" size="lg" className="w-full">
-              Create my store — {formatCedis(AGENT_FEE)}
-            </Button>
-            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
-              <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> Secured by Paystack. No monthly fees.
+          <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
+            <div>
+              <p className="text-sm font-semibold">One-time joining fee</p>
+              <p className="text-xs text-muted">Paid via Paystack after you verify.</p>
+            </div>
+            <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(AGENT_FEE)}</p>
+          </div>
+
+          <ErrorNote>{error}</ErrorNote>
+
+          <Button type="submit" size="lg" loading={loading} className="w-full">
+            Continue
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={register} className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-card">
+          <div>
+            <h2 className="text-lg font-bold">Verify your number</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              Enter the code we sent to <span className="font-semibold text-fg">{form.phone}</span>.
             </p>
-          </form>
-        </>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Verification code</label>
+            <input
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="● ● ● ●"
+              className={`${inputCls(false)} text-center text-lg tracking-[0.4em]`}
+            />
+          </div>
+
+          <ErrorNote>{error}</ErrorNote>
+
+          <Button type="submit" size="lg" loading={loading} className="w-full">
+            Pay {formatCedis(AGENT_FEE)} &amp; activate
+          </Button>
+          <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+            <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> You’ll be redirected to Paystack to pay securely.
+          </p>
+
+          <div className="flex items-center justify-between pt-1 text-xs">
+            <button
+              type="button"
+              onClick={() => { setStep('details'); setError(''); }}
+              className="font-medium text-muted transition-colors hover:text-fg"
+            >
+              ← Change details
+            </button>
+            <button
+              type="button"
+              onClick={sendOtp}
+              disabled={loading}
+              className="font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-50"
+            >
+              Resend code
+            </button>
+          </div>
+        </form>
       )}
     </Page>
   )

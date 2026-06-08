@@ -106,6 +106,33 @@ export async function initiatePurchase({ recipientPhone, networkType, volumeInMB
   return data
 }
 
+// --- Agent registration ----------------------------------------------------
+
+// Send the SMS verification code for agent sign-up.
+export async function sendAgentOtp(phone) {
+  const res = await fetch(`${BASE}/gheasy/auth/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) throw new Error(data.error || 'Could not send the code. Try again.')
+  return data
+}
+
+// Register an agent. Backend creates the (pending) account and returns a
+// Paystack { paymentUrl } for the GHS joining fee.
+export async function registerAgent({ phone, pin, storeName, otp }) {
+  const res = await fetch(`${BASE}/gheasy/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, pin, storeName, otp }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) throw new Error(data.error || 'Registration failed.')
+  return data
+}
+
 // --- Order status ----------------------------------------------------------
 
 const STATUS_MAP = {
