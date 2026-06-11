@@ -103,14 +103,23 @@ export function saveAgentStore(store) {
 // --- Agent session (login token + profile) ---------------------------------
 const AGENT_SESSION_KEY = 'gheasy-agent-session'
 
+// Persisted in localStorage, so the agent stays logged in across app closes.
+// Only treat it as a valid login when it has both a token and an agent profile.
 export function getAgentSession() {
-  return read(AGENT_SESSION_KEY, null)
+  const session = read(AGENT_SESSION_KEY, null)
+  if (!session || typeof session !== 'object' || !session.token || !session.agent) return null
+  return session
+}
+
+export function isAgentLoggedIn() {
+  return getAgentSession() !== null
 }
 
 export function saveAgentSession(session) {
   write(AGENT_SESSION_KEY, session)
 }
 
+// Logout — clears the persisted agent session.
 export function clearAgentSession() {
   write(AGENT_SESSION_KEY, null)
 }

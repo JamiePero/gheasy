@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
+import { getAgentSession } from '../lib/store.js'
 
 export default function MobileHeader() {
   const { pathname } = useLocation()
   const [installPrompt, setInstallPrompt] = useState(null)
   const [showBanner, setShowBanner] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
+  const [agentSession] = useState(() => getAgentSession())
+  const agent = agentSession?.agent
+  const storeInitials =
+    (agent?.storeName || '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase() || 'E'
 
   useEffect(() => {
     // Detect iOS
@@ -43,7 +54,28 @@ export default function MobileHeader() {
     <>
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/60 glass px-4 md:hidden">
         <Logo wordmarkClass="h-6" />
-        <ThemeToggle className="h-9 w-9" />
+        <div className="flex items-center gap-2">
+          {agent ? (
+            <Link
+              to="/agent/dashboard"
+              aria-label="Agent dashboard"
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-1 pr-2.5"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-[11px] font-bold text-white">
+                {storeInitials}
+              </span>
+              <span className="max-w-[84px] truncate text-xs font-semibold text-fg">{agent.storeName}</span>
+            </Link>
+          ) : (
+            <Link
+              to="/agent/login"
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-fg"
+            >
+              Login
+            </Link>
+          )}
+          <ThemeToggle className="h-9 w-9" />
+        </div>
       </header>
 
       {showBanner && (

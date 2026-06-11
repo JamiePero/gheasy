@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
@@ -31,6 +31,9 @@ export default function AgentDashboard() {
   const [customPrices, setCustomPrices] = useState({})
   const [savingKey, setSavingKey] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(null)
+  const [fees, setFees] = useState({}) // bundleKey -> { paystackFee, smsFee, serviceFee, agentEarnings }
+  const [feesLoading, setFeesLoading] = useState({})
+  const feeTimers = useRef({})
 
   // ── Arriving from Paystack callback (not logged in yet) ───────────────────
   if (!agent) {
@@ -124,6 +127,52 @@ export default function AgentDashboard() {
     }
   }
 
+  // ── Live fee breakdown as the agent types a customer price ─────────────────
+  function onPriceChange(key, value, bundle) {
+    setCustomPrices((p) => ({ ...p, [key]: value }))
+    const price = parseFloat(value)
+    clearTimeout(feeTimers.current[key])
+    if (!Number.isFinite(price) || price <= 0) {
+      setFees((f) => {
+        if (!(key in f)) return f
+        const next = { ...f }
+        delete next[key]
+        return next
+      })
+      setFeesLoading((s) => ({ ...s, [key]: false }))
+      return
+    }
+    setFeesLoading((s) => ({ ...s, [key]: true }))
+    feeTimers.current[key] = setTimeout(async () => {
+      try {
+        const res = await fetch(`${BASE}/gheasy/agent/calculate-fees`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerPrice: price,
+            networkType: bundle.network,
+            volumeInMB: bundle.volumeInMB,
+            gbAmount: bundle.gbAmount,
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setFees((f) => ({ ...f, [key]: data }))
+        } else {
+          setFees((f) => {
+            const next = { ...f }
+            delete next[key]
+            return next
+          })
+        }
+      } catch {
+        /* network error — leave the breakdown hidden */
+      } finally {
+        setFeesLoading((s) => ({ ...s, [key]: false }))
+      }
+    }, 450)
+  }
+
   // ── Cashout ───────────────────────────────────────────────────────────────
   async function handleCashout() {
     setCashoutError('')
@@ -202,7 +251,7 @@ export default function AgentDashboard() {
             {showCashout ? 'Cancel' : 'Withdraw'}
           </button>
         </div>
-        <p className="mt-1 text-xs text-muted">3% fee · processed next business day</p>
+        <p className="mt-1 text-xs text-muted">10% commission · processed next business day</p>
 
         {showCashout && (
           <div className="mt-4 space-y-3">
@@ -239,6 +288,18 @@ export default function AgentDashboard() {
                 <option value="airteltigo">AirtelTigo Money</option>
               </select>
             </div>
+            {Number.isFinite(parseFloat(cashoutAmount)) && parseFloat(cashoutAmount) > 0 && (
+              <div className="space-y-1 rounded-2xl bg-surface p-3 text-xs">
+                <div className="flex justify-between text-muted">
+                  <span>10% platform commission</span>
+                  <span className="tnum">{formatCedis(parseFloat(cashoutAmount) * 0.1)}</span>
+                </div>
+                <div className="flex justify-between border-t border-border pt-1 font-semibold">
+                  <span>You receive</span>
+                  <span className="tnum text-brand">{formatCedis(parseFloat(cashoutAmount) * 0.9)}</span>
+                </div>
+              </div>
+            )}
             {cashoutError && <p className="text-xs text-red-500">{cashoutError}</p>}
             {cashoutSuccess && <p className="text-xs text-brand">{cashoutSuccess}</p>}
             <Button onClick={handleCashout} loading={cashoutLoading} size="sm" className="w-full">
@@ -273,25 +334,40 @@ export default function AgentDashboard() {
                     const key = b.gbAmount
                       ? `${b.network}_${b.gbAmount}`
                       : `${b.network}_${b.volumeInMB}`
+                    const fb = fees[key]
                     return (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="w-16 shrink-0 text-xs text-muted">{b.name?.match(/\d+GB/i)?.[0] || b.name}</span>
-                        <span className="text-xs text-muted">Base: {formatCedis(b.basePrice || b.sellPrice)}</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          placeholder={String(b.sellPrice)}
-                          value={customPrices[key] || ''}
-                          onChange={(e) => setCustomPrices((p) => ({ ...p, [key]: e.target.value }))}
-                          className="w-24 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand"
-                        />
-                        <button
-                          onClick={() => savePrice(key, b.basePrice || b.sellPrice)}
-                          disabled={savingKey === key}
-                          className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                        >
-                          {savingKey === key ? '...' : saveSuccess === key ? '✓' : 'Save'}
-                        </button>
+                      <div key={key}>
+                        <div className="flex items-center gap-2">
+                          <span className="w-16 shrink-0 text-xs text-muted">{b.name?.match(/\d+GB/i)?.[0] || b.name}</span>
+                          <span className="text-xs text-muted">Base: {formatCedis(b.basePrice || b.sellPrice)}</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder={String(b.sellPrice)}
+                            value={customPrices[key] || ''}
+                            onChange={(e) => onPriceChange(key, e.target.value, b)}
+                            className="w-24 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand"
+                          />
+                          <button
+                            onClick={() => savePrice(key, b.basePrice || b.sellPrice)}
+                            disabled={savingKey === key}
+                            className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                          >
+                            {savingKey === key ? '...' : saveSuccess === key ? '✓' : 'Save'}
+                          </button>
+                        </div>
+                        {feesLoading[key] && <p className="mt-1 text-[11px] text-muted">Calculating fees…</p>}
+                        {fb && (
+                          <div className="mt-1.5 space-y-0.5 rounded-xl bg-surface/70 p-2.5 text-[11px]">
+                            <div className="flex justify-between text-muted"><span>SMS fee</span><span className="tnum">{formatCedis(fb.smsFee)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Paystack fee</span><span className="tnum">{formatCedis(fb.paystackFee)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Service fee</span><span className="tnum">{formatCedis(fb.serviceFee)}</span></div>
+                            <div className="flex justify-between border-t border-border pt-0.5 font-semibold">
+                              <span>Your earnings</span>
+                              <span className={`tnum ${fb.agentEarnings >= 0 ? 'text-brand' : 'text-red-500'}`}>{formatCedis(fb.agentEarnings)}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}

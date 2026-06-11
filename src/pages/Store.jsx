@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
-import { fetchStoreBundles, initiateStorePurchase, findPaystackUrl } from '../lib/api.js'
-import { formatCedis, getNetwork, isValidGhPhone, normalizePhone } from '../lib/format.js'
+import { formatCedis, getNetwork, isValidGhPhone, normalizePhone, prettyPhone } from '../lib/format.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, saveProfile } from '../lib/store.js'
 import { AlertIcon, ShieldIcon } from '../components/icons.jsx'
@@ -165,22 +165,58 @@ export default function Store() {
         )}
       </section>
 
-      {/* Pay */}
-      {submitError && (
-        <p className="mb-4 flex items-start gap-1.5 rounded-xl bg-red-500/10 p-3 text-xs font-medium text-red-500">
-          <AlertIcon className="mt-px h-4 w-4 shrink-0" />
-          {submitError}
+      {/* Pay — desktop keeps the inline button; mobile uses the floating bar below */}
+      <div className="hidden md:block">
+        {submitError && (
+          <p className="mb-4 flex items-start gap-1.5 rounded-xl bg-red-500/10 p-3 text-xs font-medium text-red-500">
+            <AlertIcon className="mt-px h-4 w-4 shrink-0" />
+            {submitError}
+          </p>
+        )}
+
+        <Button onClick={handlePay} disabled={!canPay} loading={submitting} size="lg" className="w-full">
+          {selectedBundle ? `Pay ${formatCedis(selectedBundle.sellPrice)}` : 'Select a bundle'}
+        </Button>
+
+        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
+          <ShieldIcon className="h-4 w-4 text-brand" />
+          Secured by Paystack
         </p>
-      )}
+      </div>
 
-      <Button onClick={handlePay} disabled={!canPay} loading={submitting} size="lg" className="w-full">
-        {selectedBundle ? `Pay ${formatCedis(selectedBundle.sellPrice)}` : 'Select a bundle'}
-      </Button>
-
-      <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
-        <ShieldIcon className="h-4 w-4 text-brand" />
-        Secured by Paystack
-      </p>
+      {/* Mobile floating Pay bar — appears when a bundle is selected */}
+      <AnimatePresence>
+        {selectedBundle && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            className="fixed inset-x-3 bottom-[96px] z-40 md:hidden"
+          >
+            <div className="flex items-center gap-3 rounded-3xl border border-border glass p-2.5 pl-4 shadow-2xl">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs text-muted">
+                  {selectedBundle.name} · {net.label}
+                  {phoneValid ? ` · ${prettyPhone(phone)}` : ''}
+                </p>
+                <p className="font-display text-xl font-bold leading-tight tnum text-fg">
+                  {formatCedis(selectedBundle.sellPrice)}
+                </p>
+              </div>
+              <Button onClick={handlePay} disabled={!canPay} loading={submitting} size="md" className="shrink-0">
+                Pay now
+              </Button>
+            </div>
+            {submitError && (
+              <p className="mt-2 flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 py-2 text-center text-xs font-medium text-red-500">
+                <AlertIcon className="h-4 w-4 shrink-0" />
+                {submitError}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Page>
   )
 }

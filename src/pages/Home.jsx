@@ -8,7 +8,7 @@ import AdCarousel from '../components/AdCarousel.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { fetchBundles } from '../lib/api.js'
-import { getAgentStore, getOrders, getProfile } from '../lib/store.js'
+import { getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import {
   ArrowRightIcon,
@@ -140,8 +140,59 @@ export default function Home() {
   const [store] = useState(() => getAgentStore())
   const first = firstName(profile.name)
 
+  // Logged-in agent? Show a dashboard banner at the very top (CHANGE 3).
+  const [agentSession] = useState(() => getAgentSession())
+  const agent = agentSession?.agent
+  const agentStoreUrl = agent ? agent.storeUrl || `https://gheasy.com/store/${agent.slug}` : ''
+  const [agentCopied, setAgentCopied] = useState(false)
+  const copyAgentStore = async () => {
+    try {
+      await navigator.clipboard.writeText(agentStoreUrl)
+      setAgentCopied(true)
+      setTimeout(() => setAgentCopied(false), 1500)
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+
   return (
     <Page>
+      {agent && (
+        <div className="wrap-app pt-4">
+          <div className="relative overflow-hidden rounded-3xl border border-brand/30 bg-brand/[0.06] p-4 shadow-card">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">
+                  Agent · {agent.agentId}
+                </p>
+                <p className="truncate font-display text-base font-bold">{agent.storeName}</p>
+              </div>
+              <Link
+                to="/agent/dashboard"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-white"
+              >
+                Dashboard <ChevronRightIcon className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="mt-3 flex items-stretch gap-3">
+              <div className="flex-1 rounded-2xl border border-border bg-card p-3">
+                <p className="text-[11px] text-muted">Earnings</p>
+                <p className="font-display text-lg font-bold tnum text-brand">
+                  {formatCedis(agent.earningsBalance || 0)}
+                </p>
+              </div>
+              <button
+                onClick={copyAgentStore}
+                className="flex-1 rounded-2xl border border-border bg-card p-3 text-left transition-colors hover:border-brand/40"
+              >
+                <p className="text-[11px] text-muted">{agentCopied ? 'Copied!' : 'Store link · tap to copy'}</p>
+                <p className="truncate text-xs font-medium">{agentStoreUrl}</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ════════════════ MOBILE (< md) — unchanged ════════════════ */}
       <div className="wrap-app pb-10 md:hidden">
         {/* Greeting header */}
