@@ -1,0 +1,22 @@
+{
+  "name": "easy",
+  "short_name": "easy",
+  "description": "Buy MTN, Telecel & AirtelTigo data bundles in seconds. No login. Pick, pay, done.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030706",
+  "theme_color": "#030706",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/easytra.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/easytra.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
