@@ -28,6 +28,7 @@ export default function AgentDashboard() {
   const [showPricing, setShowPricing] = useState(false)
   const [bundles, setBundles] = useState([])
   const [bundlesLoading, setBundlesLoading] = useState(false)
+  const [bundlesError, setBundlesError] = useState('')
   const [customPrices, setCustomPrices] = useState({})
   const [savingKey, setSavingKey] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(null)
@@ -73,25 +74,38 @@ export default function AgentDashboard() {
   // ── Load bundles for pricing editor ───────────────────────────────────────
   async function loadBundles() {
     setBundlesLoading(true)
+    setBundlesError('')
+    console.log('[easy] loadBundles — slug:', agent?.slug)
+    if (!agent?.slug) {
+      setBundlesError('Your store link is missing from this session. Please log out and log in again.')
+      setBundlesLoading(false)
+      return
+    }
     try {
       const res = await fetch(`${BASE}/gheasy/store/${agent.slug}`)
-      const data = await res.json()
-      if (data.success) {
-        setBundles(data.bundles || [])
-        // Pre-fill custom prices from agent data
-        const prices = {}
-        ;(data.bundles || []).forEach((b) => {
-          const key = b.network && b.gbAmount
-            ? `${b.network}_${b.gbAmount}`
-            : b.network
-              ? `${b.network}_${b.volumeInMB}`
-              : null
-          if (key && b.sellPrice !== b.basePrice) prices[key] = String(b.sellPrice)
-        })
-        setCustomPrices(prices)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        const msg = data.error || `Could not load bundles (HTTP ${res.status}).`
+        console.error('[easy] loadBundles failed:', res.status, msg)
+        setBundlesError(msg)
+        return
       }
+      setBundles(data.bundles || [])
+      // Pre-fill custom prices from agent data (basePrice falls back to sellPrice).
+      const prices = {}
+      ;(data.bundles || []).forEach((b) => {
+        const key = b.network && b.gbAmount
+          ? `${b.network}_${b.gbAmount}`
+          : b.network
+            ? `${b.network}_${b.volumeInMB}`
+            : null
+        const basePrice = b.basePrice ?? b.sellPrice
+        if (key && b.sellPrice !== basePrice) prices[key] = String(b.sellPrice)
+      })
+      setCustomPrices(prices)
     } catch (e) {
-      console.error('Failed to load bundles', e)
+      console.error('[easy] loadBundles error:', e)
+      setBundlesError(e.message || 'Network error loading bundles. Please try again.')
     } finally {
       setBundlesLoading(false)
     }
@@ -120,6 +134,7 @@ export default function AgentDashboard() {
       if (!data.success) throw new Error(data.error)
       setSaveSuccess(bundleKey)
       setTimeout(() => setSaveSuccess(null), 2000)
+      loadBundles() // refresh so the bundle list reflects the saved price
     } catch (e) {
       alert(e.message || 'Failed to save price.')
     } finally {
@@ -323,8 +338,18 @@ export default function AgentDashboard() {
 
         {showPricing && (
           <div className="mt-4 space-y-6">
-            {bundlesLoading && <p className="text-xs text-muted">Loading bundles...</p>}
-            {!bundlesLoading && Object.entries(networkGroups).map(([net, netBundles]) => (
+            {bundlesLoading && bundles.length === 0 && <p className="text-xs text-muted">Loading bundles...</p>}
+            {bundlesError && (
+              <div className="rounded-2xl bg-red-500/10 p-3 text-xs text-red-500">
+                <p className="font-medium">Couldn’t load your bundles</p>
+                <p className="mt-0.5">{bundlesError}</p>
+                <button onClick={loadBundles} className="mt-2 font-semibold underline">Try again</button>
+              </div>
+            )}
+            {!bundlesLoading && !bundlesError && bundles.length === 0 && (
+              <p className="text-xs text-muted">No bundles available right now.</p>
+            )}
+            {Object.entries(networkGroups).map(([net, netBundles]) => (
               <div key={net}>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                   {net.replace(/_/g, ' ')}

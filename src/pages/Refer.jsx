@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import { getProfile, getReferralCode, saveProfile } from '../lib/store.js'
+import { getAgentSession, getProfile, getReferralCode, saveProfile } from '../lib/store.js'
 import { isValidGhPhone } from '../lib/format.js'
 import { track } from '../lib/analytics.js'
 import {
@@ -79,8 +79,9 @@ function AccountGate({ onDone }) {
   )
 }
 
-function ReferContent() {
-  const [code] = useState(() => getReferralCode())
+function ReferContent({ agent }) {
+  // Agents refer with their Agent ID; everyone else uses a locally generated code.
+  const [code] = useState(() => (agent ? agent.agentId : getReferralCode()))
   const link = `https://gheasy.com/?ref=${code}`
   const [copied, setCopied] = useState('')
 
@@ -171,7 +172,10 @@ function ReferContent() {
 export default function Refer() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(() => getProfile())
-  const registered = hasAccount(profile)
+  // Agents register through the agent system (separate session), not the local
+  // profile flow — treat a logged-in agent as an already-registered referrer.
+  const agent = getAgentSession()?.agent || null
+  const registered = Boolean(agent) || hasAccount(profile)
 
   return (
     <Page className="wrap-app pb-12 pt-6">
@@ -185,7 +189,7 @@ export default function Refer() {
       <p className="text-sm text-muted">Earn data when friends join easy</p>
 
       <div className="mt-6">
-        {registered ? <ReferContent /> : <AccountGate onDone={() => setProfile(getProfile())} />}
+        {registered ? <ReferContent agent={agent} /> : <AccountGate onDone={() => setProfile(getProfile())} />}
       </div>
     </Page>
   )

@@ -6,7 +6,7 @@ import Button from '../components/Button.jsx'
 import Spinner from '../components/Spinner.jsx'
 import { NetworkBadge } from '../components/NetworkPicker.jsx'
 import { getOrder } from '../lib/api.js'
-import { updateOrder } from '../lib/store.js'
+import { saveOrder, updateOrder } from '../lib/store.js'
 import { formatCedis, getNetwork, prettyPhone } from '../lib/format.js'
 import {
   AlertIcon,
@@ -104,15 +104,21 @@ export default function OrderStatus() {
         setResult(res)
         setHasSearched(true)
         if (res.found && res.order?.reference) {
-          updateOrder(
-            { reference: res.order.reference },
-            {
-              status: res.order.status,
-              volume: res.order.volume,
-              amount: res.order.amount,
-              network: res.order.network,
-            },
-          )
+          // Persist to local history so it shows on the History page — easy orders
+          // are otherwise never written to local storage.
+          const o = res.order
+          const entry = {
+            reference: o.reference,
+            status: o.status,
+            network: o.network,
+            volume: o.volume || o.bundle,
+            amount: o.amount,
+            phone: o.phone,
+            source: o.raw?.source || 'easy',
+            createdAt: o.createdAt || Date.now(),
+          }
+          const existed = updateOrder({ reference: o.reference }, entry)
+          if (!existed) saveOrder(entry)
         }
       } catch (e) {
         setError(e.message || 'Something went wrong. Please try again.')
