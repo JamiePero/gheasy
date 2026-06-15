@@ -23,5 +23,5 @@ export const BALANCE_CODES = [
 // WhatsApp support — scaffolded behind a constant. Set this to the real number
 // (digits only, international format e.g. '233539255071') to make the floating
 // support button and success-screen link appear. Empty = button hidden.
-export const WHATSAPP_NUMBER = ''
+export const WHATSAPP_NUMBER = '+233241880233'
 export const WHATSAPP_DEFAULT_TEXT = 'Hi GhEasy, I need help with my order'
