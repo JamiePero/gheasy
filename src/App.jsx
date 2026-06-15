@@ -1,64 +1,30 @@
-import { AnimatePresence } from 'framer-motion'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
+import { ThemeProvider } from './theme.jsx'
 import MobileHeader from './components/MobileHeader.jsx'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import RouteTracker from './components/RouteTracker.jsx'
-import Home from './pages/Home.jsx'
-import BuyData from './pages/BuyData.jsx'
-import History from './pages/History.jsx'
-import OrderStatus from './pages/OrderStatus.jsx'
-import Refer from './pages/Refer.jsx'
-import Agent from './pages/Agent.jsx'
-import AgentLogin from './pages/AgentLogin.jsx'
-import AgentDashboard from './pages/AgentDashboard.jsx'
-import Store from './pages/Store.jsx'
-import More from './pages/More.jsx'
-import About from './pages/About.jsx'
-import HowItWorks from './pages/HowItWorks.jsx'
-import Faq from './pages/Faq.jsx'
-import Agents from './pages/Agents.jsx'
-import NetworkBundles from './pages/NetworkBundles.jsx'
 import WhatsAppButton from './components/WhatsAppButton.jsx'
-import NotFound from './pages/NotFound.jsx'
 
+// Root layout: providers + persistent chrome around the routed <Outlet/>.
+// Routes themselves live in routes.jsx (consumed by vite-react-ssg + client).
 export default function App() {
-  const location = useLocation()
   return (
-    <div className="relative flex min-h-dvh flex-col bg-bg">
-      <ScrollToTop />
-      <RouteTracker />
-      <MobileHeader />
-      <Navbar />
-      <main className="w-full flex-1 pb-[88px] md:pb-0">
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Home />} />
-            <Route path="/buy-data" element={<BuyData />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/order-status" element={<OrderStatus />} />
-            <Route path="/refer" element={<Refer />} />
-            <Route path="/agent" element={<Agent />} />
-            <Route path="/agent/login" element={<AgentLogin />} />
-            <Route path="/agent/dashboard" element={<AgentDashboard />} />
-            <Route path="/store/:slug" element={<Store />} />
-            <Route path="/more" element={<More />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/faq" element={<Faq />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/mtn-bundles" element={<NetworkBundles network="mtn" />} />
-            <Route path="/telecel-bundles" element={<NetworkBundles network="telecel" />} />
-            <Route path="/airteltigo-bundles" element={<NetworkBundles network="airteltigo" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AnimatePresence>
-      </main>
-      <Footer />
-      <BottomNav />
-      <WhatsAppButton />
-    </div>
+    <ThemeProvider>
+      <div className="relative flex min-h-dvh flex-col bg-bg">
+        <ScrollToTop />
+        <RouteTracker />
+        <MobileHeader />
+        <Navbar />
+        <main className="w-full flex-1 pb-[88px] md:pb-0">
+          <Outlet />
+        </main>
+        <Footer />
+        <BottomNav />
+        <WhatsAppButton />
+      </div>
+    </ThemeProvider>
   )
 }

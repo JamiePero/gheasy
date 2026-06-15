@@ -7,6 +7,8 @@ const REFERRAL_KEY = 'gheasy-referral'
 const AGENT_KEY = 'gheasy-agent'
 
 function read(key, fallback) {
+  // Guard for prerender/SSR where localStorage is unavailable.
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return fallback
   try {
     const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : fallback
@@ -16,6 +18,7 @@ function read(key, fallback) {
 }
 
 function write(key, value) {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
