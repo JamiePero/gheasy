@@ -1,5 +1,6 @@
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import Seo from '../components/Seo.jsx'
 import { NetworkBadge } from '../components/NetworkPicker.jsx'
 import { NETWORKS } from '../lib/format.js'
 import {
@@ -30,6 +31,10 @@ const roadmap = [
 export default function About() {
   return (
     <Page>
+      <Seo
+        title="About GhEasy — Ghana's Simplest Data Bundle Platform"
+        description="GhEasy makes buying MTN, Telecel and AirtelTigo data in Ghana fast, safe, and login-free. Learn who we are and why we built this."
+      />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="glow-mesh pointer-events-none absolute inset-0 -z-10" />

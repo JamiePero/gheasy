@@ -9,8 +9,9 @@ import { ArrowRightIcon } from './icons.jsx'
 const links = [
   { to: '/', label: 'Home', end: true },
   { to: '/buy-data', label: 'Buy Data' },
-  { to: '/history', label: 'History' },
-  { to: '/order-status', label: 'Track Order' },
+  { to: '/how-it-works', label: 'How It Works' },
+  { to: '/faq', label: 'FAQ' },
+  { to: '/agents', label: 'Agents' },
   { to: '/about', label: 'About' },
 ]
 

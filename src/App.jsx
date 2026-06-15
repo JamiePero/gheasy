@@ -17,6 +17,11 @@ import AgentDashboard from './pages/AgentDashboard.jsx'
 import Store from './pages/Store.jsx'
 import More from './pages/More.jsx'
 import About from './pages/About.jsx'
+import HowItWorks from './pages/HowItWorks.jsx'
+import Faq from './pages/Faq.jsx'
+import Agents from './pages/Agents.jsx'
+import NetworkBundles from './pages/NetworkBundles.jsx'
+import WhatsAppButton from './components/WhatsAppButton.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 export default function App() {
@@ -38,16 +43,22 @@ export default function App() {
             <Route path="/agent" element={<Agent />} />
             <Route path="/agent/login" element={<AgentLogin />} />
             <Route path="/agent/dashboard" element={<AgentDashboard />} />
-            <Route path="/agent/dashboard" element={<AgentDashboard />} />
-<Route path="/store/:slug" element={<Store />} />
+            <Route path="/store/:slug" element={<Store />} />
             <Route path="/more" element={<More />} />
             <Route path="/about" element={<About />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/agents" element={<Agents />} />
+            <Route path="/mtn-bundles" element={<NetworkBundles network="mtn" />} />
+            <Route path="/telecel-bundles" element={<NetworkBundles network="telecel" />} />
+            <Route path="/airteltigo-bundles" element={<NetworkBundles network="airteltigo" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AnimatePresence>
       </main>
       <Footer />
       <BottomNav />
+      <WhatsAppButton />
     </div>
   )
 }

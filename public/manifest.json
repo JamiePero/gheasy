@@ -1,7 +1,7 @@
 {
-  "name": "easy",
-  "short_name": "easy",
-  "description": "Buy MTN, Telecel & AirtelTigo data bundles in seconds. No login. Pick, pay, done.",
+  "name": "GhEasy — Ghana Data Bundles",
+  "short_name": "GhEasy",
+  "description": "Buy MTN, Telecel & AirtelTigo data bundles in Ghana. No login. Pick, pay, done.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#030706",
@@ -16,7 +16,8 @@
     {
       "src": "/easytra.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

@@ -10,6 +10,8 @@ import Avatar from '../components/Avatar.jsx'
 import { fetchBundles } from '../lib/api.js'
 import { getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
+import Seo from '../components/Seo.jsx'
+import { BALANCE_CODES } from '../config.js'
 import {
   ArrowRightIcon,
   BoltIcon,
@@ -157,6 +159,7 @@ export default function Home() {
 
   return (
     <Page>
+      <Seo />
       {agent && (
         <div className="wrap-app pt-4">
           <div className="relative overflow-hidden rounded-3xl border border-brand/30 bg-brand/[0.06] p-4 shadow-card">
@@ -242,6 +245,22 @@ export default function Home() {
               Buy Data
             </Button>
           </div>
+        </div>
+
+        {/* Trust bar */}
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+          <span className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 font-medium">
+            <BoltIcon className="h-4 w-4 shrink-0 text-brand" /> Instant delivery
+          </span>
+          <span className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 font-medium">
+            <ShieldIcon className="h-4 w-4 shrink-0 text-brand" /> Secure MoMo
+          </span>
+          <span className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 font-medium">
+            <GlobeIcon className="h-4 w-4 shrink-0 text-brand" /> All networks
+          </span>
+          <span className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 font-medium">
+            <DataIcon className="h-4 w-4 shrink-0 text-brand" /> 24/7 available
+          </span>
         </div>
 
         {/* Become an Agent — full-width banner */}
@@ -339,6 +358,19 @@ export default function Home() {
               })}
             </div>
           )}
+        </section>
+
+        {/* Check your balance */}
+        <section className="mt-7 rounded-3xl border border-border bg-card p-5 shadow-card">
+          <h2 className="text-sm font-bold">Check your data balance</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {BALANCE_CODES.map((b) => (
+              <li key={b.network} className="flex items-center justify-between">
+                <span className="text-muted">{b.network}</span>
+                <span className="font-mono font-semibold">Dial {b.code}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <p className="mt-9 flex items-center justify-center gap-1.5 text-xs text-muted">
@@ -454,6 +486,24 @@ export default function Home() {
                 <p className="max-w-[12rem] font-semibold leading-snug">{t.title}</p>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* CHECK BALANCE */}
+        <section className="wrap py-16">
+          <div className="mx-auto max-w-3xl rounded-[2rem] border border-border bg-card p-8 shadow-card">
+            <div className="text-center">
+              <h2 className="font-display text-2xl font-bold tracking-tight">Check your data balance</h2>
+              <p className="mt-2 text-sm text-muted">Dial the code for your network anytime after purchase.</p>
+            </div>
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              {BALANCE_CODES.map((b) => (
+                <div key={b.network} className="rounded-2xl border border-border bg-surface p-5 text-center">
+                  <p className="text-sm text-muted">{b.network}</p>
+                  <p className="mt-1 font-display text-xl font-bold">{b.code}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
