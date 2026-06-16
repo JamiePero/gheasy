@@ -11,8 +11,10 @@ function WhatsAppGlyph({ className = '' }) {
 // Floating WhatsApp support button shown on every page. Scaffolded: only renders
 // once WHATSAPP_NUMBER is set in config.js. Sits above the mobile bottom nav.
 export default function WhatsAppButton() {
-  if (!WHATSAPP_NUMBER) return null
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_DEFAULT_TEXT)}`
+  // wa.me requires digits only — strip any '+', spaces or dashes from the config.
+  const digits = String(WHATSAPP_NUMBER).replace(/\D/g, '')
+  if (!digits) return null
+  const href = `https://wa.me/${digits}?text=${encodeURIComponent(WHATSAPP_DEFAULT_TEXT)}`
   return (
     <a
       href={href}

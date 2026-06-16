@@ -8,6 +8,13 @@ import { CheckIcon, CopyIcon, ReceiptIcon, WalletIcon } from '../components/icon
 
 const BASE = 'https://api.getflashx.com'
 
+// Build the customPrices key for a bundle — MUST match the backend store endpoint.
+// MTN/RemaData is always `mtn_<volumeInMB>` (never the provider's raw network
+// string); DataHub is `<network>_<gbAmount>`.
+function bundleKeyOf(b) {
+  return b.gbAmount != null ? `${b.network}_${b.gbAmount}` : `mtn_${b.volumeInMB}`
+}
+
 export default function AgentDashboard() {
   const navigate = useNavigate()
   const [session] = useState(() => getAgentSession())
@@ -94,11 +101,7 @@ export default function AgentDashboard() {
       // Pre-fill custom prices from agent data (basePrice falls back to sellPrice).
       const prices = {}
       ;(data.bundles || []).forEach((b) => {
-        const key = b.network && b.gbAmount
-          ? `${b.network}_${b.gbAmount}`
-          : b.network
-            ? `${b.network}_${b.volumeInMB}`
-            : null
+        const key = bundleKeyOf(b)
         const basePrice = b.basePrice ?? b.sellPrice
         if (key && b.sellPrice !== basePrice) prices[key] = String(b.sellPrice)
       })
@@ -356,9 +359,7 @@ export default function AgentDashboard() {
                 </p>
                 <div className="space-y-2">
                   {netBundles.map((b) => {
-                    const key = b.gbAmount
-                      ? `${b.network}_${b.gbAmount}`
-                      : `${b.network}_${b.volumeInMB}`
+                    const key = bundleKeyOf(b)
                     const fb = fees[key]
                     return (
                       <div key={key}>
