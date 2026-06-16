@@ -82,19 +82,25 @@ export default function AgentDashboard() {
   async function loadBundles() {
     setBundlesLoading(true)
     setBundlesError('')
-    console.log('[easy] loadBundles — slug:', agent?.slug)
     if (!agent?.slug) {
-      setBundlesError('Your store link is missing from this session. Please log out and log in again.')
+      setBundlesError('Your store link is missing. Please log out and log in again.')
       setBundlesLoading(false)
       return
     }
+    const url = `${BASE}/gheasy/store/${agent.slug}`
+    console.log('[easy] loadBundles GET', url)
     try {
-      const res = await fetch(`${BASE}/gheasy/store/${agent.slug}`)
-      const data = await res.json().catch(() => ({}))
+      const res = await fetch(url)
+      const text = await res.text()
+      console.log('[easy] loadBundles ←', res.status, text.slice(0, 300))
+      let data = {}
+      try {
+        data = JSON.parse(text)
+      } catch {
+        /* non-JSON response */
+      }
       if (!res.ok || !data.success) {
-        const msg = data.error || `Could not load bundles (HTTP ${res.status}).`
-        console.error('[easy] loadBundles failed:', res.status, msg)
-        setBundlesError(msg)
+        setBundlesError(data.error || `Could not load bundles (HTTP ${res.status}).`)
         return
       }
       setBundles(data.bundles || [])
@@ -107,8 +113,8 @@ export default function AgentDashboard() {
       })
       setCustomPrices(prices)
     } catch (e) {
-      console.error('[easy] loadBundles error:', e)
-      setBundlesError(e.message || 'Network error loading bundles. Please try again.')
+      console.error('[easy] loadBundles fetch threw:', e)
+      setBundlesError(`Couldn’t reach the server (${e.message}). Check your connection and try again.`)
     } finally {
       setBundlesLoading(false)
     }
@@ -133,13 +139,14 @@ export default function AgentDashboard() {
         headers: { 'Content-Type': 'application/json', 'x-agent-token': token },
         body: JSON.stringify({ bundleKey, price }),
       })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) throw new Error(data.error || `Save failed (HTTP ${res.status}).`)
       setSaveSuccess(bundleKey)
       setTimeout(() => setSaveSuccess(null), 2000)
       loadBundles() // refresh so the bundle list reflects the saved price
     } catch (e) {
-      alert(e.message || 'Failed to save price.')
+      console.error('[easy] savePrice error:', e)
+      alert(`Couldn’t save price: ${e.message || 'please try again.'}`)
     } finally {
       setSavingKey(null)
     }
