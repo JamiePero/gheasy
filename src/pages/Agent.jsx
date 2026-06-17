@@ -131,7 +131,7 @@ export default function Agent() {
             An account with <span className="font-semibold text-fg">{form.phone}</span> already exists.
             Please log in instead.
           </p>
-          <Button to="/agent/login" size="lg" className="mt-5 w-full">
+          <Button to="/login" size="lg" className="mt-5 w-full">
             Log in
           </Button>
           <button
@@ -145,7 +145,7 @@ export default function Agent() {
         <>
           <p className="mt-3 text-center text-sm text-muted">
             Already an agent?{' '}
-            <Link to="/agent/login" className="font-semibold text-brand">
+            <Link to="/login" className="font-semibold text-brand">
               Log in
             </Link>
           </p>

@@ -46,7 +46,7 @@ export default function AgentLogin() {
       const data = await loginAgent({ phone: normalizePhone(form.phone), pin: form.pin })
       saveAgentSession({ token: data.token, agent: data.agent })
       track('agent_login', {})
-      navigate('/agent/dashboard')
+      navigate('/dashboard')
     } catch (err) {
       if (err.status === 403 && /joining fee/i.test(err.message)) {
         setNeedsPayment(true) // registered but never paid → offer to complete payment
@@ -152,7 +152,7 @@ export default function AgentLogin() {
           </Button>
           <p className="text-center text-sm text-muted">
             New here?{' '}
-            <Link to="/agent" className="font-semibold text-brand">
+            <Link to="/" className="font-semibold text-brand">
               Become an agent
             </Link>
           </p>

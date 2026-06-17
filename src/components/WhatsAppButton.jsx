@@ -21,10 +21,13 @@ export default function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with GhEasy on WhatsApp"
-      className="fixed bottom-[100px] right-4 z-50 flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 font-semibold text-white shadow-lg transition-transform hover:scale-105 md:bottom-6"
+      title="WhatsApp support"
+      // Frosted-glass squircle. Sits at bottom-[168px] on mobile so it clears
+      // both the bottom nav (~88px) and the floating Pay bar (~96px) on
+      // Store/BuyData; drops to bottom-6 on desktop where the Pay bar is hidden.
+      className="fixed bottom-[168px] right-4 z-50 grid h-14 w-14 place-items-center rounded-[18px] border border-white/20 bg-black/20 shadow-lg backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
     >
-      <WhatsAppGlyph className="h-6 w-6" />
-      <span className="hidden text-sm sm:inline">WhatsApp Support</span>
+      <WhatsAppGlyph className="h-7 w-7 text-[#25D366]" />
     </a>
   )
 }

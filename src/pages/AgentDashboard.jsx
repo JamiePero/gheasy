@@ -43,6 +43,25 @@ export default function AgentDashboard() {
   const [feesLoading, setFeesLoading] = useState({})
   const feeTimers = useRef({})
 
+  // Fresh dashboard data — the session is captured at login and goes stale, so
+  // refetch earnings/orders on mount (Part 6).
+  const [live, setLive] = useState(null)
+  useEffect(() => {
+    if (!token) return
+    let alive = true
+    fetch(`${BASE}/gheasy/agent/dashboard`, { headers: { 'x-agent-token': token } })
+      .then((r) => r.json())
+      .then((data) => {
+        if (alive && data.success && data.agent) setLive(data.agent)
+      })
+      .catch(() => {
+        /* keep the stale session values on failure */
+      })
+    return () => {
+      alive = false
+    }
+  }, [token])
+
   // ── Arriving from Paystack callback (not logged in yet) ───────────────────
   if (!agent) {
     return (
@@ -55,7 +74,7 @@ export default function AgentDashboard() {
           <p className="mx-auto mt-2 max-w-sm text-muted">
             Your easy store is being activated. Log in with your phone and PIN to manage it.
           </p>
-          <Button to="/agent/login" className="mx-auto mt-6">
+          <Button to="/login" className="mx-auto mt-6">
             Log in to your store
           </Button>
         </div>
@@ -63,7 +82,8 @@ export default function AgentDashboard() {
     )
   }
 
-  const storeUrl = agent.storeUrl || `https://gheasy.com/store/${agent.slug}`
+  const view = live || agent
+  const storeUrl = live?.storeUrl || `https://agent.gheasy.com/store/${agent.slug}`
 
   const logout = () => {
     clearAgentSession()
@@ -250,12 +270,12 @@ export default function AgentDashboard() {
         <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
           <WalletIcon className="h-5 w-5 text-brand" />
           <p className="mt-2 text-xs text-muted">Earnings balance</p>
-          <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(agent.earningsBalance || 0)}</p>
+          <p className="font-display text-2xl font-bold tnum text-brand">{formatCedis(view.earningsBalance || 0)}</p>
         </div>
         <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
           <ReceiptIcon className="h-5 w-5 text-brand" />
           <p className="mt-2 text-xs text-muted">Total orders</p>
-          <p className="font-display text-2xl font-bold tnum">{agent.totalOrders || 0}</p>
+          <p className="font-display text-2xl font-bold tnum">{view.totalOrders || 0}</p>
         </div>
       </div>
 
