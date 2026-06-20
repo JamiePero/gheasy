@@ -53,6 +53,68 @@ export default function Store() {
     return () => document.removeEventListener('visibilitychange', handler)
   }, [])
 
+  // Per-store PWA manifest (FIX 1): "Add to Home Screen" on a store page should
+  // open that store, not the agent landing. Inject a same-origin blob manifest
+  // with start_url = /store/{slug}, plus iOS standalone meta tags. Restored on unmount.
+  useEffect(() => {
+    if (typeof document === 'undefined' || !slug) return
+    const origin = window.location.origin
+    const startUrl = `${origin}/store/${slug}`
+    const manifest = {
+      name: storeInfo?.storeName ? `${storeInfo.storeName} — easy` : 'easy store',
+      short_name: (storeInfo?.storeName || 'easy').slice(0, 12),
+      description: 'Buy data bundles on easy. No login.',
+      start_url: startUrl,
+      scope: startUrl,
+      display: 'standalone',
+      background_color: '#030706',
+      theme_color: '#030706',
+      orientation: 'portrait',
+      icons: [
+        { src: `${origin}/easytra.png`, sizes: '192x192', type: 'image/png' },
+        { src: `${origin}/easytra.png`, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    }
+    const blobUrl = URL.createObjectURL(
+      new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }),
+    )
+    let link = document.querySelector('link[rel="manifest"]')
+    const prevHref = link?.getAttribute('href') || null
+    const createdLink = !link
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'manifest'
+      document.head.appendChild(link)
+    }
+    link.setAttribute('href', blobUrl)
+
+    const metas = []
+    const upsertMeta = (name, content) => {
+      let m = document.querySelector(`meta[name="${name}"]`)
+      const existed = !!m
+      if (!m) {
+        m = document.createElement('meta')
+        m.setAttribute('name', name)
+        document.head.appendChild(m)
+      }
+      metas.push({ m, prev: m.getAttribute('content'), existed })
+      m.setAttribute('content', content)
+    }
+    upsertMeta('apple-mobile-web-app-capable', 'yes')
+    upsertMeta('apple-mobile-web-app-status-bar-style', 'black-translucent')
+    upsertMeta('apple-mobile-web-app-title', storeInfo?.storeName || 'easy')
+
+    return () => {
+      URL.revokeObjectURL(blobUrl)
+      if (createdLink) link.remove()
+      else if (prevHref) link.setAttribute('href', prevHref)
+      metas.forEach(({ m, prev, existed }) => {
+        if (!existed) m.remove()
+        else if (prev != null) m.setAttribute('content', prev)
+      })
+    }
+  }, [slug, storeInfo])
+
   const filteredBundles = bundles
     .filter((b) => b.network === network || (network === 'airteltigo_ishare' && b.network === 'airteltigo_ishare') || (network === 'airteltigo_bigtime' && b.network === 'airteltigo_bigtime'))
     .sort((a, b) => a.sellPrice - b.sellPrice)
@@ -124,7 +186,6 @@ export default function Store() {
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">easy store</p>
         <h1 className="text-2xl font-bold tracking-tight">{storeInfo?.storeName}</h1>
-        <p className="mt-1 text-sm text-muted">{storeInfo?.totalOrders || 0} orders fulfilled</p>
       </div>
 
       {/* Network picker */}

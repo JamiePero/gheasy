@@ -8,10 +8,10 @@ function WhatsAppGlyph({ className = '' }) {
   )
 }
 
-// Floating WhatsApp support button shown on every page. Scaffolded: only renders
-// once WHATSAPP_NUMBER is set in config.js. Sits above the mobile bottom nav.
+// Floating WhatsApp support button — frosted-glass squircle with the icon
+// centred (flex + place-items). bottom-[168px] on mobile clears the bottom nav
+// (~88px) and the floating Pay bar (~96px) on Store/BuyData; bottom-6 on desktop.
 export default function WhatsAppButton() {
-  // wa.me requires digits only — strip any '+', spaces or dashes from the config.
   const digits = String(WHATSAPP_NUMBER).replace(/\D/g, '')
   if (!digits) return null
   const href = `https://wa.me/${digits}?text=${encodeURIComponent(WHATSAPP_DEFAULT_TEXT)}`
@@ -22,12 +22,9 @@ export default function WhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with GhEasy on WhatsApp"
       title="WhatsApp support"
-      // Frosted-glass squircle. Sits at bottom-[168px] on mobile so it clears
-      // both the bottom nav (~88px) and the floating Pay bar (~96px) on
-      // Store/BuyData; drops to bottom-6 on desktop where the Pay bar is hidden.
-      className="fixed bottom-[168px] right-4 z-50 grid h-14 w-14 place-items-center rounded-[18px] border border-white/20 bg-black/20 shadow-lg backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
+      className="fixed bottom-[168px] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/20 bg-black/20 shadow-lg backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
     >
-      <WhatsAppGlyph className="h-7 w-7 text-[#25D366]" />
+      <WhatsAppGlyph className="block h-7 w-7 text-[#25D366]" />
     </a>
   )
 }

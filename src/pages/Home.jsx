@@ -5,6 +5,7 @@ import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import AdCarousel from '../components/AdCarousel.jsx'
+import InstallSection from '../components/InstallSection.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { fetchBundles } from '../lib/api.js'
@@ -282,6 +283,11 @@ export default function Home() {
           </div>
           <ChevronRightIcon className="relative h-5 w-5 shrink-0 text-muted" />
         </Link>
+
+        {/* Install the app */}
+        <div className="mt-7">
+          <InstallSection />
+        </div>
 
         {/* Buy Mobile Data — network cards with logos */}
         <section className="mt-7">
