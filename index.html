@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en-GH">
+<html lang="en-GH" style="background-color: #050f05">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
@@ -60,7 +60,17 @@
     </script>
   </head>
   <body>
+    <!-- First-paint cover so the splash background is the very first thing
+         visible (no blank flash). The app removes it once the splash is ready. -->
+    <div id="boot-splash" style="position:fixed;inset:0;background-color:#050f05;z-index:9998"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Safety net: if the app never mounts, drop the boot cover after 10s.
+      setTimeout(function () {
+        var b = document.getElementById('boot-splash');
+        if (b) b.remove();
+      }, 10000);
+    </script>
   </body>
 </html>

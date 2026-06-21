@@ -13,6 +13,7 @@ import SplashScreen from './components/SplashScreen.jsx'
 import DomainGuard from './components/DomainGuard.jsx'
 import { AgentHeader, AgentBottomNav } from './components/AgentChrome.jsx'
 import { isAgentHost } from './lib/host.js'
+import { appReady } from './lib/appReady.js'
 
 // Root layout: providers + persistent chrome around the routed <Outlet/>.
 // Chrome is hostname-aware — agent.gheasy.com gets the agent chrome, gheasy.com
@@ -24,21 +25,43 @@ export default function App() {
   // Cold-load splash, shown once per browser session (not on internal nav).
   // Starts false so the prerendered HTML hydrates cleanly, then mounts post-hydration.
   useEffect(() => {
+    const removeBoot = () => {
+      try {
+        document.getElementById('boot-splash')?.remove()
+      } catch {
+        /* ignore */
+      }
+    }
     let shown = true
     try {
       shown = sessionStorage.getItem('easy-splash-shown') === '1'
     } catch {
       /* sessionStorage blocked */
     }
-    if (shown) return
-    setShowSplash(true)
+    if (shown) {
+      removeBoot() // already shown this session → reveal the app immediately
+      return
+    }
     try {
       sessionStorage.setItem('easy-splash-shown', '1')
     } catch {
       /* ignore */
     }
-    const t = setTimeout(() => setShowSplash(false), 2000)
-    return () => clearTimeout(t)
+    setShowSplash(true)
+
+    // Fade out only when BOTH the 3s minimum AND the content are ready.
+    // appReady is capped at 8s so a slow/never-firing signal can't hang the splash.
+    let cancelled = false
+    const minTimer = new Promise((r) => setTimeout(r, 3000))
+    const contentReady = Promise.race([appReady, new Promise((r) => setTimeout(r, 8000))])
+    Promise.all([minTimer, contentReady]).then(() => {
+      if (cancelled) return
+      removeBoot() // reveal the app behind the fading splash
+      setShowSplash(false)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (

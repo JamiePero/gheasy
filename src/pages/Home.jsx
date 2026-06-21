@@ -13,6 +13,7 @@ import { getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/st
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import Seo from '../components/Seo.jsx'
 import { BALANCE_CODES } from '../config.js'
+import { markAppReady } from '../lib/appReady.js'
 import {
   ArrowRightIcon,
   BoltIcon,
@@ -142,6 +143,11 @@ export default function Home() {
   const [profile] = useState(() => getProfile())
   const [store] = useState(() => getAgentStore())
   const first = firstName(profile.name)
+
+  // Signal the splash that the home content is ready once bundle prices load.
+  useEffect(() => {
+    if (!pricesLoading) markAppReady()
+  }, [pricesLoading])
 
   // Logged-in agent? Show a dashboard banner at the very top (CHANGE 3).
   const [agentSession] = useState(() => getAgentSession())
