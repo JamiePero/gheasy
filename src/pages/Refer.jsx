@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { getAgentSession, getProfile, getReferralCode, saveProfile } from '../lib/store.js'
-import { isValidGhPhone } from '../lib/format.js'
+import { formatCedis, isValidGhPhone } from '../lib/format.js'
 import { track } from '../lib/analytics.js'
 import {
   ArrowLeftIcon,
@@ -20,6 +20,10 @@ const inp = (err) =>
   }`
 
 const hasAccount = (p) => Boolean(p.name?.trim() && isValidGhPhone(p.phone))
+
+// Mirror of the backend DATA_COST_PER_GB — for displaying the cash estimate
+// only; the server recomputes the authoritative value on redemption.
+const DATA_COST_PER_GB = 4.5
 
 function AccountGate({ onDone }) {
   const [form, setForm] = useState(() => {
@@ -116,6 +120,31 @@ function ReferContent({ agent }) {
     { Icon: ClockIcon, label: 'Pending', value: 0, sub: 'awaiting purchase' },
   ]
 
+  // Redemption (1GB data or cash). Cash value = (points / 10) * data cost per GB.
+  const phone = agent?.phoneNumber || getProfile().phone || ''
+  const canRedeem = points >= goal
+  const cashValue = (points / 10) * DATA_COST_PER_GB
+  const [redeeming, setRedeeming] = useState('')
+  const [redeemMsg, setRedeemMsg] = useState('')
+  const redeemCash = async () => {
+    setRedeeming('cash')
+    setRedeemMsg('')
+    try {
+      const res = await fetch('https://api.getflashx.com/gheasy/redeem-cash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, points, userId: code }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Request failed')
+      setRedeemMsg(data.message || 'Your cash redemption request has been submitted.')
+    } catch (e) {
+      setRedeemMsg(e.message || 'Could not submit your request. Please try again.')
+    } finally {
+      setRedeeming('')
+    }
+  }
+
   return (
     <>
       <div className="rounded-3xl border border-border bg-card p-6 text-center shadow-card">
@@ -159,6 +188,37 @@ function ReferContent({ agent }) {
         <p className="mt-2 text-xs text-muted">
           Points are credited when your referred friend makes their first purchase. 10 points = 1GB.
         </p>
+      </div>
+
+      {/* Redeem rewards — 1GB data or its cash value */}
+      <div className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-card">
+        <h3 className="text-sm font-bold">Redeem your points</h3>
+        <p className="mt-0.5 text-xs text-muted">{goal} points = 1GB data, or take the cash value.</p>
+        {redeemMsg ? (
+          <p className="mt-4 rounded-2xl bg-brand/10 p-3 text-sm font-medium text-brand">{redeemMsg}</p>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <Button
+                variant="secondary"
+                disabled={!canRedeem || !!redeeming}
+                onClick={() =>
+                  setRedeemMsg('Your 1GB data reward request has been submitted and is being processed.')
+                }
+              >
+                Redeem 1GB Data
+              </Button>
+              <Button disabled={!canRedeem || !!redeeming} loading={redeeming === 'cash'} onClick={redeemCash}>
+                Cash · {formatCedis(cashValue)}
+              </Button>
+            </div>
+            {!canRedeem && (
+              <p className="mt-3 text-center text-xs text-muted">
+                Earn {Math.max(0, goal - points)} more points to redeem.
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       <h2 className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Your referrals</h2>

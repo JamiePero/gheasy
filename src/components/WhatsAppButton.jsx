@@ -22,7 +22,7 @@ export default function WhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with GhEasy on WhatsApp"
       title="WhatsApp support"
-      className="fixed bottom-[168px] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/20 bg-black/20 shadow-lg backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
+      className="fixed bottom-[168px] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-[18px] border border-brand/30 bg-black/20 shadow-[0_8px_30px_rgba(37,211,102,0.30)] backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
     >
       <WhatsAppGlyph className="block h-7 w-7 text-[#25D366]" />
     </a>

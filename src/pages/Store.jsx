@@ -253,9 +253,10 @@ export default function Store() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            className="fixed inset-x-3 bottom-[96px] z-40 md:hidden"
+            className="fixed inset-x-0 bottom-0 z-50 border-t border-border glass px-3 pt-2.5 md:hidden"
+            style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))' }}
           >
-            <div className="flex items-center gap-3 rounded-3xl border border-border glass p-2.5 pl-4 shadow-2xl">
+            <div className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs text-muted">
                   {selectedBundle.name} · {net.label}

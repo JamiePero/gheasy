@@ -43,12 +43,12 @@ export default function InstallSection() {
           <BoltIcon className="h-6 w-6" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-base font-bold">Get the easy app</p>
+          <p className="font-display text-base font-bold">Install Easy App</p>
           <p className="text-sm text-muted">
             {isIOS
-              ? 'Add easy to your home screen for one-tap access.'
+              ? 'Add to your home screen — fast access, no browser needed.'
               : prompt
-                ? 'Install easy for faster, app-like access.'
+                ? 'Fast access, no browser needed.'
                 : 'Open gheasy.com on your phone to install.'}
           </p>
         </div>

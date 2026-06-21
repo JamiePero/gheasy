@@ -11,6 +11,7 @@ import AgentDashboard from './pages/AgentDashboard.jsx'
 import Store from './pages/Store.jsx'
 import More from './pages/More.jsx'
 import About from './pages/About.jsx'
+import Admin from './pages/Admin.jsx'
 import HowItWorks from './pages/HowItWorks.jsx'
 import Faq from './pages/Faq.jsx'
 import Agents from './pages/Agents.jsx'
@@ -53,6 +54,7 @@ export const routes = [
       { path: 'refer', element: <Refer /> },
       { path: 'more', element: <More /> },
       { path: 'about', element: <About /> },
+      { path: 'admin', element: <Admin /> },
       { path: 'how-it-works', element: <HowItWorks /> },
       { path: 'faq', element: <Faq /> },
       { path: 'agents', element: <Agents /> },
