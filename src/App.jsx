@@ -37,7 +37,7 @@ export default function App() {
     } catch {
       /* ignore */
     }
-    const t = setTimeout(() => setShowSplash(false), 1000)
+    const t = setTimeout(() => setShowSplash(false), 2000)
     return () => clearTimeout(t)
   }, [])
 
