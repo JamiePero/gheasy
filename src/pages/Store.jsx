@@ -181,7 +181,7 @@ export default function Store() {
   }
 
   return (
-    <Page className="wrap max-w-lg pb-40 pt-6">
+    <Page className="wrap max-w-lg pb-44 pt-6">
       {/* Store header */}
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">easy store</p>
@@ -210,7 +210,7 @@ export default function Store() {
         {filteredBundles.length === 0 ? (
           <p className="text-sm text-muted">No {net.label} bundles available right now.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             {filteredBundles.map((b) => (
               <BundleCard
                 key={b.id || b.name}

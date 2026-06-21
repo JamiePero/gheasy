@@ -1,25 +1,35 @@
 import { motion } from 'framer-motion'
-import { formatCedis, getBundleStyle } from '../lib/format.js'
+import { formatCedis, getNetwork } from '../lib/format.js'
 import { CheckIcon } from './icons.jsx'
 
-export default function BundleCard({ bundle, active, onSelect }) {
-  const style = getBundleStyle(bundle.network)
-  const subtitle = bundle.description || bundle.validity || 'Data bundle'
+// Clean GB label: RemaData ships `volume` ("7.81GB"); DataHub ships gbAmount /
+// a "Telecel 5GB" name. Never show raw MB.
+function gbLabel(b) {
+  if (b.volume) return b.volume
+  if (b.gbAmount) return `${b.gbAmount}GB`
+  const m = String(b.name || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
+  if (m) return `${m[1]}GB`
+  if (b.volumeInMB) return `${(b.volumeInMB / 1024).toFixed(2)}GB`
+  return b.name || ''
+}
 
-  const card = (
+export default function BundleCard({ bundle, active, onSelect }) {
+  const netLabel = bundle.networkConfig?.label || getNetwork(bundle.network)?.label || ''
+  const subtitle = netLabel ? `${netLabel} Data Bundle` : 'Data Bundle'
+
+  return (
     <motion.button
       type="button"
       onClick={onSelect}
       whileTap={{ scale: 0.97 }}
       aria-pressed={active}
-      className={`group relative flex h-full w-full flex-col items-start overflow-hidden rounded-3xl border bg-card p-4 text-left transition-all duration-200 ${
-        active ? 'ring-2 ring-brand' : 'hover:-translate-y-0.5'
+      className={`group relative flex h-full w-full flex-col items-start overflow-hidden rounded-3xl border-2 border-border bg-card p-4 text-left transition-all duration-200 ${
+        active ? 'ring-2 ring-brand shadow-glow' : 'hover:-translate-y-0.5'
       }`}
-      style={{ borderColor: style.gradientBorder ? 'transparent' : style.border }}
     >
       <div className="flex w-full items-start justify-between gap-2">
         <span className="font-display text-[26px] font-bold leading-none tracking-tight text-fg">
-          {bundle.volume || bundle.name}
+          {gbLabel(bundle)}
         </span>
         <span
           className={`grid h-6 w-6 shrink-0 place-items-center rounded-full transition-all duration-200 ${
@@ -30,20 +40,9 @@ export default function BundleCard({ bundle, active, onSelect }) {
         </span>
       </div>
       <span className="mt-1.5 line-clamp-1 text-xs text-muted">{subtitle}</span>
-      <span className="mt-3 text-lg font-bold tnum text-fg">{formatCedis(bundle.sellPrice)}</span>
+      <span className="mt-auto pt-3 font-display text-lg font-bold tnum text-brand">
+        {formatCedis(bundle.sellPrice)}
+      </span>
     </motion.button>
   )
-
-  // AirtelTigo gets a red→blue gradient border (1.5px wrapper around the card).
-  if (style.gradientBorder) {
-    return (
-      <div
-        className="rounded-3xl p-[1.5px] transition-all duration-200"
-        style={{ background: active ? '#22C55E' : style.gradient }}
-      >
-        {card}
-      </div>
-    )
-  }
-  return card
 }
