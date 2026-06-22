@@ -8,9 +8,11 @@ function WhatsAppGlyph({ className = '' }) {
   )
 }
 
-// Floating WhatsApp support button — frosted-glass squircle with the icon
-// centred (flex + place-items). bottom-[168px] on mobile clears the bottom nav
-// (~88px) and the floating Pay bar (~96px) on Store/BuyData; bottom-6 on desktop.
+// Floating WhatsApp support button — a 56px circular frosted-glass pill with a
+// soft green glow. Centering is layout-only (grid place-items-center) so the
+// 28px icon can't drift or clip inside the 56px circle. bottom-[168px] on mobile
+// clears the bottom nav (~88px) and the floating Pay bar (~96px) on
+// Store/BuyData; bottom-6 on desktop.
 export default function WhatsAppButton() {
   const digits = String(WHATSAPP_NUMBER).replace(/\D/g, '')
   if (!digits) return null
@@ -22,9 +24,9 @@ export default function WhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Chat with GhEasy on WhatsApp"
       title="WhatsApp support"
-      className="fixed bottom-[168px] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-[18px] border border-brand/30 bg-black/20 shadow-[0_8px_30px_rgba(37,211,102,0.30)] backdrop-blur-xl transition-transform hover:scale-105 dark:bg-white/10 md:bottom-6"
+      className="fixed bottom-[168px] right-4 z-50 grid h-14 w-14 place-items-center rounded-full border border-brand/30 bg-[#08160c]/70 shadow-[0_6px_24px_rgba(34,197,94,0.35)] backdrop-blur-md transition-transform duration-200 hover:scale-105 active:scale-95 md:bottom-6"
     >
-      <WhatsAppGlyph className="block h-7 w-7 text-[#25D366]" />
+      <WhatsAppGlyph className="h-7 w-7 text-brand" />
     </a>
   )
 }
