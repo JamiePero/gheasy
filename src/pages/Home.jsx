@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import ThemeToggle from '../components/ThemeToggle.jsx'
 import AdCarousel from '../components/AdCarousel.jsx'
 import InstallSection from '../components/InstallSection.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
@@ -224,7 +223,27 @@ export default function Home() {
             >
               <GiftIcon className="h-5 w-5" />
             </Link>
-            <ThemeToggle className="h-10 w-10" />
+            <Link
+              to="/login"
+              aria-label="Log in to your account"
+              className="flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <path d="m10 17 5-5-5-5" />
+                <path d="M15 12H3" />
+              </svg>
+              Login
+            </Link>
           </div>
         </header>
 

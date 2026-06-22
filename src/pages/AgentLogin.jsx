@@ -6,7 +6,7 @@ import { loginAgent, resendAgentPayment } from '../lib/api.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { saveAgentSession } from '../lib/store.js'
 import { track } from '../lib/analytics.js'
-import { AlertIcon, ArrowLeftIcon, BriefcaseIcon, ClockIcon, ShieldIcon } from '../components/icons.jsx'
+import { AlertIcon, ArrowLeftIcon, ClockIcon, ShieldIcon } from '../components/icons.jsx'
 
 const inputCls = (err) =>
   `w-full rounded-2xl border bg-card px-3.5 py-3 text-[15px] font-medium text-fg outline-none transition-colors placeholder:font-normal placeholder:text-muted/50 ${
@@ -84,10 +84,13 @@ export default function AgentLogin() {
         <div className="glow-mesh pointer-events-none absolute inset-0" />
         <div className="relative">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand/10 text-brand">
-            <BriefcaseIcon className="h-6 w-6" />
+            <ShieldIcon className="h-6 w-6" />
           </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight">Agent login</h1>
-          <p className="mt-1 text-sm text-muted">Sign in to manage your store and earnings.</p>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight">Log in to your account</h1>
+          <p className="mt-1 text-sm text-muted">Enter your phone number and PIN to continue.</p>
+          <p className="mt-4 rounded-xl bg-brand/10 p-3 text-xs leading-relaxed text-fg/80">
+            You can buy data without an account. Log in to access referrals, order history, and more.
+          </p>
         </div>
       </div>
 
@@ -153,7 +156,7 @@ export default function AgentLogin() {
           <p className="text-center text-sm text-muted">
             New here?{' '}
             <Link to="/" className="font-semibold text-brand">
-              Become an agent
+              Create an account
             </Link>
           </p>
         </form>
