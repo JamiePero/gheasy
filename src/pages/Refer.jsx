@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { getAgentSession, getProfile, getReferralCode, saveProfile } from '../lib/store.js'
 import { formatCedis, isValidGhPhone } from '../lib/format.js'
+import { fetchReferralByPhone } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
 import {
   ArrowLeftIcon,
@@ -84,10 +85,32 @@ function AccountGate({ onDone }) {
 }
 
 function ReferContent({ agent }) {
-  // Agents refer with their Agent ID; everyone else uses a locally generated code.
-  const [code] = useState(() => (agent ? agent.agentId : getReferralCode()))
-  const link = `https://gheasy.com/?ref=${code}`
+  const phone = agent?.phoneNumber || getProfile().phone || ''
+  const [refData, setRefData] = useState(null)
+  // Fallback code shown while the backend loads, or for users without a shared
+  // users doc. Real code (and points) come from fetchReferralByPhone below.
+  const [localCode] = useState(() => (agent ? agent.agentId : getReferralCode()))
   const [copied, setCopied] = useState('')
+
+  // Pull the user's real referral data (points, code, referrals) from the shared
+  // backend, keyed by phone — Gheasy is no-login so it has no users doc id.
+  useEffect(() => {
+    if (!phone) return
+    let alive = true
+    fetchReferralByPhone(phone)
+      .then((data) => {
+        if (alive) setRefData(data)
+      })
+      .catch(() => {
+        /* keep defaults (0 points, local code) on failure */
+      })
+    return () => {
+      alive = false
+    }
+  }, [phone])
+
+  const code = refData?.referralCode || localCode
+  const link = `https://gheasy.com/?ref=${code}`
 
   const copy = async (text, what) => {
     try {
@@ -112,16 +135,18 @@ function ReferContent({ agent }) {
     }
   }
 
-  const points = 0
+  const points = refData?.points ?? 0
+  const totalReferrals = refData?.totalReferrals ?? 0
+  const referrals = refData?.referrals ?? []
+  const pendingCount = referrals.filter((r) => r.status !== 'credited').length
   const goal = 10
   const stats = [
     { Icon: GiftIcon, label: 'Points', value: points },
-    { Icon: UsersIcon, label: 'Friends', value: 0, sub: 'referred' },
-    { Icon: ClockIcon, label: 'Pending', value: 0, sub: 'awaiting purchase' },
+    { Icon: UsersIcon, label: 'Friends', value: totalReferrals, sub: 'referred' },
+    { Icon: ClockIcon, label: 'Pending', value: pendingCount, sub: 'awaiting purchase' },
   ]
 
   // Redemption (1GB data or cash). Cash value = (points / 10) * data cost per GB.
-  const phone = agent?.phoneNumber || getProfile().phone || ''
   const canRedeem = points >= goal
   const cashValue = (points / 10) * DATA_COST_PER_GB
   const [redeeming, setRedeeming] = useState('')
@@ -183,7 +208,15 @@ function ReferContent({ agent }) {
           <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, (points / goal) * 100)}%` }} />
         </div>
         <p className="mt-3 text-sm text-muted">
-          Earn {goal - points} more points to get <span className="font-semibold text-fg">1GB free data</span>
+          {canRedeem ? (
+            <>
+              You have enough points — redeem <span className="font-semibold text-fg">1GB free data</span> below.
+            </>
+          ) : (
+            <>
+              Earn {goal - points} more points to get <span className="font-semibold text-fg">1GB free data</span>.
+            </>
+          )}
         </p>
         <p className="mt-2 text-xs text-muted">
           Points are credited when your referred friend makes their first purchase. 10 points = 1GB.
@@ -222,9 +255,27 @@ function ReferContent({ agent }) {
       </div>
 
       <h2 className="mt-8 text-xs font-semibold uppercase tracking-wide text-muted">Your referrals</h2>
-      <div className="mt-3 rounded-3xl border border-dashed border-border bg-card/60 p-7 text-center">
-        <p className="text-sm text-muted">No referrals yet — share your code!</p>
-      </div>
+      {referrals.length === 0 ? (
+        <div className="mt-3 rounded-3xl border border-dashed border-border bg-card/60 p-7 text-center">
+          <p className="text-sm text-muted">No referrals yet — share your code!</p>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {referrals.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between rounded-2xl border border-border bg-card p-3 text-sm"
+            >
+              <span className="font-medium text-fg">{r.referredPhone}</span>
+              <span
+                className={`text-xs font-semibold ${r.status === 'credited' ? 'text-brand' : 'text-amber-500'}`}
+              >
+                {r.status === 'credited' ? `+${r.points} pts` : 'Pending'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   )
 }

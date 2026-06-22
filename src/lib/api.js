@@ -212,3 +212,13 @@ export async function getOrder(reference) {
   const order = json?.order || json?.data || json
   return { found: true, order: normalizeOrder(order, ref) }
 }
+
+// --- Referral (shared backend; looked up by phone for no-login Gheasy users) -
+export async function fetchReferralByPhone(phone) {
+  const res = await fetch(`${BASE}/referral/dashboard-by-phone/${encodeURIComponent(phone)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) throw new Error(data.error || 'Could not load referral data.')
+  return data
+}
