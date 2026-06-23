@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
   <!-- Full-bleed dark-green background so Android's adaptive (maskable) icon
-       never shows white. The easy "e" mark sits within the central safe zone. -->
+       never shows white. The easy "e" mark is centred and sized to sit well
+       inside the maskable safe zone (central ~80%). -->
   <rect width="512" height="512" fill="#050f05" />
-  <g transform="translate(96 96) scale(5)">
+  <g transform="translate(32 25) scale(7)">
     <g fill="none" stroke="#ffffff" stroke-width="5.5" stroke-linecap="round">
       <path d="M44 26 A14 14 0 1 0 46 40" />
       <path d="M30 33 H45" />

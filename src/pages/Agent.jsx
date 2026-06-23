@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { registerAgent, sendAgentOtp } from '../lib/api.js'
@@ -39,6 +39,11 @@ function ErrorNote({ children }) {
 
 export default function Agent() {
   const navigate = useNavigate()
+  const location = useLocation()
+  // navigate(-1) is a no-op when this is the first history entry (PWA start,
+  // direct link, or a cross-domain redirect landing) — which left users stuck
+  // here with a dead Back button. Fall back to the login page.
+  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/login'))
   const [step, setStep] = useState('details') // 'details' | 'otp'
   const [existing, setExisting] = useState(false) // phone already registered
   const [form, setForm] = useState({ storeName: '', phone: '', pin: '' })
@@ -101,7 +106,7 @@ export default function Agent() {
   return (
     <Page className="wrap-app pb-12 pt-6">
       <button
-        onClick={() => navigate(-1)}
+        onClick={goBack}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg"
       >
         <ArrowLeftIcon className="h-4 w-4" /> Back

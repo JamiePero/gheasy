@@ -6,6 +6,7 @@ import { loginAgent, resendAgentPayment } from '../lib/api.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { saveAgentSession } from '../lib/store.js'
 import { track } from '../lib/analytics.js'
+import { WHATSAPP_NUMBER } from '../config.js'
 import { AlertIcon, ArrowLeftIcon, ClockIcon, ShieldIcon } from '../components/icons.jsx'
 
 const inputCls = (err) =>
@@ -34,6 +35,12 @@ export default function AgentLogin() {
   const phoneOk = isValidGhPhone(form.phone)
   const pinOk = /^\d{4}$/.test(form.pin)
   const valid = phoneOk && pinOk
+
+  // No self-service PIN reset yet → route "Forgot PIN" to WhatsApp support.
+  const waDigits = String(WHATSAPP_NUMBER).replace(/\D/g, '')
+  const forgotPinHref = `https://wa.me/${waDigits}?text=${encodeURIComponent(
+    'Hi easy, I forgot my account PIN and need help resetting it.',
+  )}`
 
   const login = async (e) => {
     e.preventDefault()
@@ -153,6 +160,16 @@ export default function AgentLogin() {
           <Button type="submit" size="lg" loading={loading} className="w-full">
             Log in
           </Button>
+          {waDigits && (
+            <a
+              href={forgotPinHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm font-medium text-muted transition-colors hover:text-brand"
+            >
+              Forgot your PIN?
+            </a>
+          )}
           <p className="text-center text-sm text-muted">
             New here?{' '}
             <Link to="/" className="font-semibold text-brand">
