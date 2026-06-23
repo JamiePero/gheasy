@@ -123,9 +123,11 @@ export function saveAgentSession(session) {
   setAccountCookie(session?.agent || null)
 }
 
-// Logout — clears the persisted agent session.
+// Logout — clears the persisted agent session, the cached store, and the hint
+// cookie, so the Login button reliably comes back.
 export function clearAgentSession() {
   write(AGENT_SESSION_KEY, null)
+  write(AGENT_KEY, null)
   setAccountCookie(null)
 }
 
@@ -168,5 +170,11 @@ function readAccountCookie() {
 export function getAccountHint() {
   const session = getAgentSession()
   if (session?.agent) return { storeName: session.agent.storeName || '' }
+  // Same-origin agents also have their store cached under a separate key, which
+  // the home "Manage your store" card reads — so the Login button must honour it
+  // too, or the page shows the store AND a Login button at the same time.
+  const store = getAgentStore()
+  if (store?.storeName) return { storeName: store.storeName }
+  // Cross-subdomain (signed in on agent.gheasy.com): the lightweight hint cookie.
   return readAccountCookie()
 }
