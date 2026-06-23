@@ -80,8 +80,9 @@ export function getBundleStyle(networkId) {
 export function formatVolume(volumeInMB) {
   const n = Number(volumeInMB)
   if (!Number.isFinite(n) || n <= 0) return null
-  const gb = Math.round(n / 1024)
-  return gb >= 1 ? `${gb}GB` : `${Math.round(n)}MB`
+  // Ghana data providers express volume in decimal GB (1GB = 1000MB), not
+  // binary (1024) — divide by 1000 to get clean whole-number GB labels.
+  return n >= 1000 ? `${Math.round(n / 1000)}GB` : `${Math.round(n)}MB`
 }
 
 // Ghana Cedi formatting → ₵4.80

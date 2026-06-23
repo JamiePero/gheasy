@@ -7,6 +7,7 @@ import BundleCard from '../components/BundleCard.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import { formatCedis, getNetwork, isValidGhPhone, normalizePhone, prettyPhone } from '../lib/format.js'
+import { deriveVolumeLabel } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, saveProfile } from '../lib/store.js'
 import { AlertIcon, ShieldIcon } from '../components/icons.jsx'
@@ -214,7 +215,7 @@ export default function Store() {
             {filteredBundles.map((b) => (
               <BundleCard
                 key={b.id || b.name}
-                bundle={{ ...b, id: b.id || b.name, sellPrice: b.sellPrice }}
+                bundle={{ ...b, id: b.id || b.name, sellPrice: b.sellPrice, volume: deriveVolumeLabel(b) }}
                 active={(b.id || b.name) === selectedId}
                 onSelect={() => {
                   setSelectedId(b.id || b.name)

@@ -17,12 +17,14 @@ const num = (v) => {
 
 // Prefer the human size in the bundle name (handles 1000MB vs 1024MB providers),
 // then gbAmount, then a MB→GB conversion. Never show raw MB for full-GB bundles.
-function deriveVolumeLabel(b) {
+export function deriveVolumeLabel(b) {
   const name = String(b.name || '')
   const gb = name.match(/(\d+(?:\.\d+)?)\s*GB/i)
   if (gb) return `${Math.round(parseFloat(gb[1]))}GB`
+  // Only a sub-1GB MB figure is a real "MB" size; 1000MB+ is whole GB (decimal
+  // providers) and is normalised from volumeInMB below.
   const mb = name.match(/(\d+)\s*MB/i)
-  if (mb) return `${mb[1]}MB`
+  if (mb && Number(mb[1]) < 1000) return `${mb[1]}MB`
   if (b.gbAmount) return `${Math.round(b.gbAmount)}GB`
   return formatVolume(b.volumeInMB) || name || ''
 }

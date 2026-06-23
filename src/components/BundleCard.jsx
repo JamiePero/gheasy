@@ -2,15 +2,17 @@ import { motion } from 'framer-motion'
 import { formatCedis, getNetwork } from '../lib/format.js'
 import { CheckIcon } from './icons.jsx'
 
-// Clean GB label: RemaData ships `volume` ("7.81GB"); DataHub ships gbAmount /
-// a "Telecel 5GB" name. Never show raw MB.
+// Clean GB label. Providers are inconsistent: RemaData ships `volume` as a binary
+// figure ("7.81GB" = 8000/1024), DataHub ships gbAmount or a "Telecel 5GB" name,
+// and volumeInMB is decimal (1GB = 1000MB). Resolve everything to a whole-number
+// GB (or MB below 1GB) so cards never show "7.81GB" or raw "1000MB".
 function gbLabel(b) {
-  if (b.volume) return b.volume
-  if (b.gbAmount) return `${b.gbAmount}GB`
-  const m = String(b.name || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
-  if (m) return `${m[1]}GB`
-  if (b.volumeInMB) return `${(b.volumeInMB / 1024).toFixed(2)}GB`
-  return b.name || ''
+  const named = String(b.volume || b.name || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
+  if (named) return `${Math.round(parseFloat(named[1]))}GB`
+  if (b.gbAmount) return `${Math.round(b.gbAmount)}GB`
+  const mb = Number(b.volumeInMB)
+  if (Number.isFinite(mb) && mb > 0) return mb >= 1000 ? `${Math.round(mb / 1000)}GB` : `${Math.round(mb)}MB`
+  return String(b.volume || b.name || '')
 }
 
 export default function BundleCard({ bundle, active, onSelect }) {
