@@ -66,14 +66,7 @@ export default function MobileHeader() {
               </span>
               <span className="max-w-[84px] truncate text-xs font-semibold text-fg">{agent.storeName}</span>
             </Link>
-          ) : (
-            <Link
-              to="/agent/login"
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-fg"
-            >
-              Login
-            </Link>
-          )}
+          ) : null}
           <ThemeToggle className="h-9 w-9" />
         </div>
       </header>

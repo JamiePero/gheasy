@@ -8,7 +8,7 @@ import InstallSection from '../components/InstallSection.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { fetchBundles } from '../lib/api.js'
-import { getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
+import { getAccountHint, getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import Seo from '../components/Seo.jsx'
 import { BALANCE_CODES } from '../config.js'
@@ -24,6 +24,66 @@ import {
   ReceiptIcon,
   ShieldIcon,
 } from '../components/icons.jsx'
+
+// Home-only account control: shows the signed-in account's store (detected
+// cross-subdomain via getAccountHint), otherwise a general Login button. The
+// Login button lives ONLY here — no other page shows it.
+function AccountButton() {
+  const [account, setAccount] = useState(null)
+  // Client-only so the prerendered (logged-out) markup hydrates cleanly.
+  useEffect(() => {
+    setAccount(getAccountHint())
+  }, [])
+
+  if (account) {
+    const initials =
+      (account.storeName || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase() || 'A'
+    return (
+      <Link
+        to="/dashboard"
+        aria-label="Your account"
+        className="flex items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-1 pr-2.5"
+      >
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-brand text-[11px] font-bold text-white">
+          {initials}
+        </span>
+        <span className="max-w-[90px] truncate text-sm font-semibold text-fg">
+          {account.storeName || 'Account'}
+        </span>
+      </Link>
+    )
+  }
+
+  return (
+    <Link
+      to="/login"
+      aria-label="Log in to your account"
+      className="flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+        <path d="m10 17 5-5-5-5" />
+        <path d="M15 12H3" />
+      </svg>
+      Login
+    </Link>
+  )
+}
 
 const WORDS = ['Anytime', 'Anywhere', 'Instantly', 'Effortlessly', '24/7']
 
@@ -223,27 +283,7 @@ export default function Home() {
             >
               <GiftIcon className="h-5 w-5" />
             </Link>
-            <Link
-              to="/login"
-              aria-label="Log in to your account"
-              className="flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <path d="m10 17 5-5-5-5" />
-                <path d="M15 12H3" />
-              </svg>
-              Login
-            </Link>
+            <AccountButton />
           </div>
         </header>
 

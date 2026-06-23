@@ -120,9 +120,53 @@ export function isAgentLoggedIn() {
 
 export function saveAgentSession(session) {
   write(AGENT_SESSION_KEY, session)
+  setAccountCookie(session?.agent || null)
 }
 
 // Logout — clears the persisted agent session.
 export function clearAgentSession() {
   write(AGENT_SESSION_KEY, null)
+  setAccountCookie(null)
+}
+
+// --- Cross-subdomain account hint ------------------------------------------
+// The auth session (with token) stays per-origin in localStorage. So the
+// customer site (gheasy.com) can tell an account is signed in on
+// agent.gheasy.com, we also drop a lightweight, token-free cookie scoped to
+// .gheasy.com. This is additive — it never affects the token/auth flow.
+const ACCT_COOKIE = 'gheasy_acct'
+
+function setAccountCookie(agent) {
+  if (typeof document === 'undefined') return
+  try {
+    if (!agent) {
+      document.cookie = `${ACCT_COOKIE}=; Path=/; Max-Age=0; Domain=.gheasy.com; Secure; SameSite=Lax`
+      document.cookie = `${ACCT_COOKIE}=; Path=/; Max-Age=0`
+      return
+    }
+    const val = encodeURIComponent(JSON.stringify({ storeName: agent.storeName || '' }))
+    const yr = 60 * 60 * 24 * 365
+    document.cookie = `${ACCT_COOKIE}=${val}; Path=/; Max-Age=${yr}; Domain=.gheasy.com; Secure; SameSite=Lax`
+    document.cookie = `${ACCT_COOKIE}=${val}; Path=/; Max-Age=${yr}` // localhost / same-origin fallback
+  } catch {
+    /* cookies blocked */
+  }
+}
+
+function readAccountCookie() {
+  if (typeof document === 'undefined') return null
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + ACCT_COOKIE + '=([^;]*)'))
+    return m ? JSON.parse(decodeURIComponent(m[1])) : null
+  } catch {
+    return null
+  }
+}
+
+// Logged-in hint for the customer UI — works cross-subdomain. Prefers the full
+// local session (same origin, has the token), else the shared cookie.
+export function getAccountHint() {
+  const session = getAgentSession()
+  if (session?.agent) return { storeName: session.agent.storeName || '' }
+  return readAccountCookie()
 }
