@@ -22,9 +22,13 @@ const inp = (err) =>
 
 const hasAccount = (p) => Boolean(p.name?.trim() && isValidGhPhone(p.phone))
 
-// Mirror of the backend DATA_COST_PER_GB — for displaying the cash estimate
-// only; the server recomputes the authoritative value on redemption.
-const DATA_COST_PER_GB = 4.5
+// Referral CASH redemption — mirrors the backend REFERRAL_CASH_* limits (the
+// server is authoritative and re-checks on redemption).
+const CASH_RATE = 4 // ₵ per 10 points
+const CASH_MIN_POINTS = 25 // ₵10 minimum redemption
+const CASH_MAX_POINTS = 150 // ₵60 per-request cap
+const CASH_MIN_GHS = (CASH_MIN_POINTS / 10) * CASH_RATE // ₵10
+const CASH_MAX_GHS = (CASH_MAX_POINTS / 10) * CASH_RATE // ₵60
 
 function AccountGate({ onDone }) {
   const [form, setForm] = useState(() => {
@@ -146,9 +150,13 @@ function ReferContent({ agent }) {
     { Icon: ClockIcon, label: 'Pending', value: pendingCount, sub: 'awaiting purchase' },
   ]
 
-  // Redemption (1GB data or cash). Cash value = (points / 10) * data cost per GB.
+  // Redemption. 1GB data reward = 10 points. Cash = ₵4 per 10 points, with a
+  // ₵10 (25-point) minimum and ₵60 (150-point) per-request cap — enforced by the
+  // server; mirrored here so users don't tap into an error.
   const canRedeem = points >= goal
-  const cashValue = (points / 10) * DATA_COST_PER_GB
+  const cashPoints = Math.min(points, CASH_MAX_POINTS)
+  const cashValue = (cashPoints / 10) * CASH_RATE
+  const canRedeemCash = points >= CASH_MIN_POINTS
   const [redeeming, setRedeeming] = useState('')
   const [redeemMsg, setRedeemMsg] = useState('')
   const redeemCash = async () => {
@@ -158,7 +166,7 @@ function ReferContent({ agent }) {
       const res = await fetch('https://api.getflashx.com/gheasy/redeem-cash', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, points, userId: code }),
+        body: JSON.stringify({ phone, points: cashPoints, userId: code }),
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Request failed')
@@ -226,7 +234,9 @@ function ReferContent({ agent }) {
       {/* Redeem rewards — 1GB data or its cash value */}
       <div className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-card">
         <h3 className="text-sm font-bold">Redeem your points</h3>
-        <p className="mt-0.5 text-xs text-muted">{goal} points = 1GB data, or take the cash value.</p>
+        <p className="mt-0.5 text-xs text-muted">
+          10 points = 1GB data · or cash at {formatCedis(CASH_RATE)} per 10 points (min {formatCedis(CASH_MIN_GHS)} = {CASH_MIN_POINTS} points).
+        </p>
         {redeemMsg ? (
           <p className="mt-4 rounded-2xl bg-brand/10 p-3 text-sm font-medium text-brand">{redeemMsg}</p>
         ) : (
@@ -241,15 +251,20 @@ function ReferContent({ agent }) {
               >
                 Redeem 1GB Data
               </Button>
-              <Button disabled={!canRedeem || !!redeeming} loading={redeeming === 'cash'} onClick={redeemCash}>
-                Cash · {formatCedis(cashValue)}
+              <Button disabled={!canRedeemCash || !!redeeming} loading={redeeming === 'cash'} onClick={redeemCash}>
+                {canRedeemCash ? `Cash · ${formatCedis(cashValue)}` : `Cash · min ${formatCedis(CASH_MIN_GHS)}`}
               </Button>
             </div>
-            {!canRedeem && (
+            {!canRedeemCash ? (
               <p className="mt-3 text-center text-xs text-muted">
-                Earn {Math.max(0, goal - points)} more points to redeem.
+                Cash redemption starts at <span className="font-semibold text-fg">{formatCedis(CASH_MIN_GHS)}</span> ({CASH_MIN_POINTS} points).
+                {' '}Earn {Math.max(0, CASH_MIN_POINTS - points)} more point{CASH_MIN_POINTS - points === 1 ? '' : 's'} to cash out.
               </p>
-            )}
+            ) : points > CASH_MAX_POINTS ? (
+              <p className="mt-3 text-center text-xs text-muted">
+                Up to <span className="font-semibold text-fg">{formatCedis(CASH_MAX_GHS)}</span> ({CASH_MAX_POINTS} points) per request — redeem the rest next time.
+              </p>
+            ) : null}
           </>
         )}
       </div>
