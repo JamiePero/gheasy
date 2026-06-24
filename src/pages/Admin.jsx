@@ -145,13 +145,27 @@ function Overview({ token, onUnauth, goTo }) {
           <h2 className="text-lg font-bold">Revenue</h2>
           <button onClick={reload} className="text-xs font-semibold text-brand">Refresh</button>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat tone="brand" label="Your net revenue" value={cedis(o.revenue.net)} sub="after agent profit + referral cash" />
-          <Stat label="Total order value" value={cedis(o.revenue.totalOrderValue)} />
-          <Stat label="Agent profit paid" value={cedis(o.revenue.agentProfit)} />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat tone="brand" label="Your net revenue" value={cedis(o.revenue.net)} sub="payments − wholesale − Paystack − agent profit − referral cash paid" />
+          <Stat label="Customer payments" value={cedis(o.revenue.customerPayments)} sub="orders + joining fees" />
           <Stat label="Joining fees" value={cedis(o.revenue.joiningFeeRevenue)} />
+          <Stat label="− Provider wholesale" value={cedis(o.revenue.wholesaleCost)} />
+          <Stat label="− Paystack fees (est.)" value={cedis(o.revenue.paystackFees)} />
+          <Stat label="− Agent profit" value={cedis(o.revenue.agentProfit)} />
+          <Stat label="− Referral cash paid" value={cedis(o.revenue.referralCashPaid)} />
         </div>
       </Card>
+
+      {o.owed && (
+        <Card>
+          <h2 className="text-lg font-bold">Owed (liabilities — not subtracted from net)</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Stat tone="warn" label="Pending referral cash" value={cedis(o.owed.referralCash)} />
+            <Stat tone="warn" label="Pending agent cashouts" value={cedis(o.owed.agentCashouts)} />
+            <Stat label="Total owed" value={cedis(o.owed.total)} />
+          </div>
+        </Card>
+      )}
 
       <Card>
         <h2 className="text-lg font-bold">Orders</h2>
