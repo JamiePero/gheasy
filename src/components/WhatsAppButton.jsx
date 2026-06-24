@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import { WHATSAPP_NUMBER, WHATSAPP_DEFAULT_TEXT } from '../config.js'
+import { subscribeSupport, getSupportContact } from '../lib/support.js'
 
 // Two-tone WhatsApp logo: a brand-green speech bubble (currentColor) with an
 // explicit WHITE handset — so the receiver stays crisp on the dark frosted
@@ -19,21 +21,32 @@ function WhatsAppGlyph({ className = '' }) {
   )
 }
 
+// Ghana local "0XXXXXXXXX" -> international "233XXXXXXXXX" for wa.me links.
+function waDigits(num) {
+  let d = String(num || '').replace(/\D/g, '')
+  if (d.startsWith('0')) d = '233' + d.slice(1)
+  return d
+}
+
 // Floating WhatsApp support button — a 56px circular frosted-glass pill with a
 // soft green glow. Centering is layout-only (grid place-items-center) so the
 // 28px icon can't drift or clip inside the 56px circle. bottom-[168px] on mobile
 // clears the bottom nav (~88px) and the floating Pay bar (~96px) on
-// Store/BuyData; bottom-6 on desktop.
+// Store/BuyData; bottom-6 on desktop. On an agent store page the number is
+// overridden with the agent's own support line (lib/support.js); everywhere
+// else it falls back to the default easy support number.
 export default function WhatsAppButton() {
-  const digits = String(WHATSAPP_NUMBER).replace(/\D/g, '')
+  const override = useSyncExternalStore(subscribeSupport, getSupportContact, () => null)
+  const digits = waDigits(override?.number || WHATSAPP_NUMBER)
   if (!digits) return null
-  const href = `https://wa.me/${digits}?text=${encodeURIComponent(WHATSAPP_DEFAULT_TEXT)}`
+  const message = override?.message || WHATSAPP_DEFAULT_TEXT
+  const href = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Chat with GhEasy on WhatsApp"
+      aria-label={override ? 'Chat with this store on WhatsApp' : 'Chat with GhEasy on WhatsApp'}
       title="WhatsApp support"
       className="fixed bottom-[168px] right-4 z-50 grid h-14 w-14 place-items-center rounded-full border border-brand/40 bg-[#050f05]/60 shadow-[0_4px_24px_rgba(34,197,94,0.45)] backdrop-blur-md transition-transform duration-200 hover:scale-105 active:scale-95 md:bottom-6"
     >

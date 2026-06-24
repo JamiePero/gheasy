@@ -8,6 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import { formatCedis, getNetwork, isValidGhPhone, normalizePhone, prettyPhone } from '../lib/format.js'
 import { deriveVolumeLabel } from '../lib/api.js'
+import { setSupportContact } from '../lib/support.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, saveProfile } from '../lib/store.js'
 import { AlertIcon, ShieldIcon } from '../components/icons.jsx'
@@ -41,6 +42,20 @@ export default function Store() {
       .catch((e) => setLoadError(e.message || 'Could not load store.'))
       .finally(() => setLoading(false))
   }, [slug])
+
+  // Point the floating support button at THIS agent's WhatsApp while the store is
+  // open; if they never set one, leave it on the default easy support line.
+  useEffect(() => {
+    if (storeInfo?.supportWhatsapp) {
+      setSupportContact({
+        number: storeInfo.supportWhatsapp,
+        message: `Hi, I need help with my data purchase from ${storeInfo.storeName || 'your store'}`,
+      })
+    } else {
+      setSupportContact(null)
+    }
+    return () => setSupportContact(null)
+  }, [storeInfo])
 
   // Reset selection when network changes
   useEffect(() => { setSelectedId(null) }, [network])

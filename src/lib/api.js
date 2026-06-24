@@ -138,8 +138,8 @@ export const sendAgentOtp = (phone) => agentAuthPost('/gheasy/auth/send-otp', { 
 
 // Register an agent → returns { paymentUrl } for the GHS joining fee (409 if the
 // phone already has an account).
-export const registerAgent = ({ phone, pin, storeName, otp }) =>
-  agentAuthPost('/gheasy/auth/register', { phone, pin, storeName, otp })
+export const registerAgent = ({ phone, pin, storeName, otp, supportWhatsapp }) =>
+  agentAuthPost('/gheasy/auth/register', { phone, pin, storeName, otp, supportWhatsapp })
 
 // Log an agent in → { token, agent } (403 if joining fee unpaid / blocked).
 export const loginAgent = ({ phone, pin }) => agentAuthPost('/gheasy/auth/login', { phone, pin })

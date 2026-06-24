@@ -46,7 +46,7 @@ export default function Agent() {
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/login'))
   const [step, setStep] = useState('details') // 'details' | 'otp'
   const [existing, setExisting] = useState(false) // phone already registered
-  const [form, setForm] = useState({ storeName: '', phone: '', pin: '' })
+  const [form, setForm] = useState({ storeName: '', phone: '', pin: '', supportWhatsapp: '' })
   const [otp, setOtp] = useState('')
   const [tried, setTried] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -54,7 +54,8 @@ export default function Agent() {
 
   const phoneOk = isValidGhPhone(form.phone)
   const pinOk = /^\d{4}$/.test(form.pin)
-  const detailsValid = form.storeName.trim() && phoneOk && pinOk
+  const supportOk = isValidGhPhone(form.supportWhatsapp)
+  const detailsValid = form.storeName.trim() && phoneOk && pinOk && supportOk
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const sendOtp = async (e) => {
@@ -88,6 +89,7 @@ export default function Agent() {
         pin: form.pin,
         storeName: form.storeName.trim(),
         otp: otp.trim(),
+        supportWhatsapp: normalizePhone(form.supportWhatsapp),
       })
       track('agent_registered', {})
       if (!data.paymentUrl) throw new Error('No payment link was returned. Please try again.')
@@ -197,6 +199,23 @@ export default function Agent() {
                   className={inputCls(tried && !phoneOk)}
                 />
                 {tried && !phoneOk && <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>}
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">WhatsApp number for support</label>
+                <input
+                  value={form.supportWhatsapp}
+                  onChange={set('supportWhatsapp')}
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="024 123 4567"
+                  className={inputCls(tried && !supportOk)}
+                />
+                {tried && !supportOk ? (
+                  <p className="mt-1.5 text-xs text-red-500">Enter a valid Ghana number.</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-muted">Customers will message this number for help.</p>
+                )}
               </div>
 
               <div>
