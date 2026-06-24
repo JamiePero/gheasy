@@ -623,6 +623,68 @@ function Tools({ token, onUnauth }) {
   )
 }
 
+// ── Maintenance toggle (Firestore-backed; instant, no redeploy) ──
+function Maintenance({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/maintenance', token, onUnauth)
+  const [form, setForm] = useState({ message: '', eta: '' })
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  useEffect(() => {
+    if (data) setForm({ message: data.message || '', eta: data.eta || '' })
+  }, [data])
+  const on = !!data?.maintenanceMode
+
+  const save = async (nextOn) => {
+    setBusy(true)
+    setMsg('')
+    try {
+      await adminFetch('/gheasy/admin/maintenance', {
+        token, method: 'POST', onUnauth,
+        body: { maintenanceMode: nextOn, message: form.message, eta: form.eta },
+      })
+      setMsg(nextOn ? 'Maintenance is ON — easy customers now see the maintenance screen.' : 'Maintenance is OFF — easy is live.')
+      await reload()
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading) return <p className="text-sm text-muted">Loading…</p>
+  return (
+    <Card className="max-w-lg">
+      <h2 className="text-lg font-bold">Maintenance mode</h2>
+      <Notice error={error} />
+      <div className={`mt-3 flex items-center justify-between gap-3 rounded-2xl border p-4 ${on ? 'border-amber-500/40 bg-amber-500/[0.08]' : 'border-border bg-surface'}`}>
+        <div>
+          <p className="font-semibold">{on ? 'easy is in maintenance' : 'easy is live'}</p>
+          <p className="text-xs text-muted">{on ? 'Customers see the maintenance screen. Admin stays open.' : 'Customers can buy normally.'}</p>
+        </div>
+        <button
+          onClick={() => save(!on)}
+          disabled={busy}
+          className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${on ? 'bg-brand text-white' : 'border border-amber-500/50 text-amber-500'}`}
+        >
+          {busy ? '…' : on ? 'Turn OFF' : 'Turn ON'}
+        </button>
+      </div>
+      <div className="mt-4 space-y-3">
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-muted">Message shown to customers</label>
+          <input value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} placeholder="We’re upgrading easy. Back shortly!" className={inp} />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-muted">Estimated time back</label>
+          <input value={form.eta} onChange={(e) => setForm((f) => ({ ...f, eta: e.target.value }))} placeholder="e.g. 30 minutes" className={inp} />
+        </div>
+        <Button onClick={() => save(on)} loading={busy} variant="secondary" className="w-full">Save message &amp; ETA</Button>
+        {msg && <p className="text-xs text-brand">{msg}</p>}
+      </div>
+    </Card>
+  )
+}
+
 // ── Admin OTP login (reuses /admin/send-otp + /admin/verify-otp) ──
 function AdminLogin({ onAuthed }) {
   const [step, setStep] = useState('email')
@@ -699,6 +761,7 @@ const TABS = [
   { id: 'agents', label: 'Agents' },
   { id: 'orders', label: 'Orders' },
   { id: 'referrals', label: 'Referrals' },
+  { id: 'maintenance', label: 'Maintenance' },
   { id: 'tools', label: 'Tools' },
 ]
 
@@ -747,6 +810,7 @@ export default function Admin() {
             {tab === 'agents' && <Agents {...sectionProps} />}
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
+            {tab === 'maintenance' && <Maintenance {...sectionProps} />}
             {tab === 'tools' && <Tools {...sectionProps} />}
           </div>
         </div>
