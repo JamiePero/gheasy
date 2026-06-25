@@ -24,6 +24,14 @@ const netBucket = (n) => {
   if (s.includes('airtel') || s.includes('tigo')) return 'airteltigo'
   return 'mtn'
 }
+// Read a File into raw base64 (strips the "data:...;base64," prefix).
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result).split(',')[1] || '')
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
 
 // Shared admin fetch — attaches the OTP token, logs out on 401.
 async function adminFetch(path, { token, method = 'GET', body, onUnauth } = {}) {
@@ -637,6 +645,119 @@ function Tools({ token, onUnauth }) {
   )
 }
 
+// ── Ads / Media — easy home carousel (images base64, videos to Storage) ──
+function Ads({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/ads', token, onUnauth)
+  const [form, setForm] = useState({ title: '', description: '', linkUrl: '', order: '', durationDays: '' })
+  const [file, setFile] = useState(null)
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState('')
+  const ads = data?.ads || []
+
+  const create = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    setBusy('create')
+    try {
+      if (!form.title.trim()) throw new Error('Title is required.')
+      if (!file) throw new Error('Choose an image or mp4 video.')
+      const isVideo = file.type.startsWith('video')
+      const max = isVideo ? 10 * 1024 * 1024 : 3 * 1024 * 1024
+      if (file.size > max) throw new Error(`${isVideo ? 'Video' : 'Image'} too large. Max ${isVideo ? '10MB' : '3MB'}.`)
+      const b64 = await fileToBase64(file)
+      const body = { title: form.title, description: form.description, linkUrl: form.linkUrl, order: form.order, durationDays: form.durationDays }
+      if (isVideo) body.videoBase64 = b64
+      else { body.imageBase64 = b64; body.imageMimeType = file.type }
+      await adminFetch('/gheasy/admin/ads', { token, method: 'POST', onUnauth, body })
+      setMsg('Ad created.')
+      setForm({ title: '', description: '', linkUrl: '', order: '', durationDays: '' })
+      setFile(null)
+      await reload()
+    } catch (e2) {
+      setMsg(e2.message)
+    } finally {
+      setBusy('')
+    }
+  }
+  const toggle = async (ad) => {
+    setBusy(ad.id)
+    try {
+      await adminFetch(`/gheasy/admin/ads/${ad.id}`, { token, method: 'PUT', onUnauth, body: { active: !ad.active } })
+      await reload()
+    } catch (e) { setMsg(e.message) } finally { setBusy('') }
+  }
+  const del = async (id) => {
+    if (typeof window !== 'undefined' && !window.confirm('Delete this ad?')) return
+    setBusy(id)
+    try {
+      await adminFetch(`/gheasy/admin/ads/${id}`, { token, method: 'DELETE', onUnauth })
+      await reload()
+    } catch (e) { setMsg(e.message) } finally { setBusy('') }
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="max-w-lg">
+        <h2 className="text-lg font-bold">New ad</h2>
+        <p className="mt-0.5 text-xs text-muted">Image ≤3MB or MP4 video ≤10MB. Videos upload to storage; images store inline.</p>
+        <form onSubmit={create} className="mt-4 space-y-3">
+          <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Title" className={inp} />
+          <input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description (optional)" className={inp} />
+          <input value={form.linkUrl} onChange={(e) => setForm((f) => ({ ...f, linkUrl: e.target.value }))} placeholder="Link URL (optional)" className={inp} />
+          <div className="grid grid-cols-2 gap-3">
+            <input value={form.order} onChange={(e) => setForm((f) => ({ ...f, order: e.target.value }))} type="number" placeholder="Order" className={inp} />
+            <input value={form.durationDays} onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))} type="number" placeholder="Days active (optional)" className={inp} />
+          </div>
+          <input
+            type="file"
+            accept="image/*,video/mp4"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="block w-full text-xs text-muted file:mr-3 file:rounded-xl file:border-0 file:bg-brand file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white"
+          />
+          {file && <p className="text-[11px] text-muted">{file.name} · {(file.size / 1024 / 1024).toFixed(2)}MB</p>}
+          {msg && <p className="text-xs text-brand">{msg}</p>}
+          <Button type="submit" loading={busy === 'create'} className="w-full">Create ad</Button>
+        </form>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Ads <span className="text-sm font-normal text-muted">({ads.length})</span></h2>
+          <button onClick={reload} className="text-xs font-semibold text-brand">Refresh</button>
+        </div>
+        <Notice error={error} />
+        {loading ? (
+          <p className="mt-3 text-sm text-muted">Loading…</p>
+        ) : ads.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">No ads yet — the home banner shows the default promo slides.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {ads.map((ad) => (
+              <div key={ad.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+                <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-black">
+                  {ad.mediaType === 'video' ? (
+                    <video src={ad.mediaUrl} muted playsInline className="h-full w-full object-cover" />
+                  ) : (
+                    <img src={ad.mediaUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{ad.title}</p>
+                  <p className="text-[11px] text-muted">{ad.mediaType} · order {ad.order}{ad.endDate ? ` · ends ${fmtDate(ad.endDate)}` : ''}</p>
+                </div>
+                <button onClick={() => toggle(ad)} disabled={busy === ad.id} className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${ad.active ? 'bg-brand/15 text-brand' : 'bg-amber-500/15 text-amber-500'}`}>
+                  {ad.active ? 'Active' : 'Hidden'}
+                </button>
+                <button onClick={() => del(ad.id)} disabled={busy === ad.id} className="shrink-0 rounded-full border border-red-500/40 px-2.5 py-1 text-[11px] font-semibold text-red-400">Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
 // ── Maintenance toggle (Firestore-backed; instant, no redeploy) ──
 function Maintenance({ token, onUnauth }) {
   const { data, error, loading, reload } = useAdminData('/gheasy/admin/maintenance', token, onUnauth)
@@ -775,6 +896,7 @@ const TABS = [
   { id: 'agents', label: 'Agents' },
   { id: 'orders', label: 'Orders' },
   { id: 'referrals', label: 'Referrals' },
+  { id: 'ads', label: 'Ads / Media' },
   { id: 'maintenance', label: 'Maintenance' },
   { id: 'tools', label: 'Tools' },
 ]
@@ -824,6 +946,7 @@ export default function Admin() {
             {tab === 'agents' && <Agents {...sectionProps} />}
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
+            {tab === 'ads' && <Ads {...sectionProps} />}
             {tab === 'maintenance' && <Maintenance {...sectionProps} />}
             {tab === 'tools' && <Tools {...sectionProps} />}
           </div>

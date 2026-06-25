@@ -2,53 +2,83 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LogoMark } from './Logo.jsx'
 
-// Default GhEasy promo slides. We intentionally do NOT fetch from any external
-// ads endpoint — a dedicated GhEasy ads system will replace these later.
-const SLIDES = [
-  {
-    id: 'gh-1',
-    title: 'Buy Data Instantly',
-    description: 'MTN, Telecel & AirtelTigo — delivered in seconds',
-    background: '#142b1b',
-    color: '#ffffff',
-    glow: true,
-    logo: true,
-  },
-  {
-    id: 'gh-2',
-    title: 'MTN Bundles from GHS 4.80',
-    description: "Ghana's largest network",
-    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-    color: '#0A0F1E',
-  },
-  {
-    id: 'gh-3',
-    title: 'No login. No stress.',
-    description: 'Pick, pay, done. easy works for everyone.',
-    background: '#030706',
-    color: '#ffffff',
-    accent: true,
-  },
+const BASE = 'https://api.getflashx.com'
+
+// Fallback promo slides shown until easy ads exist (managed in /admin → Ads / Media).
+const DEFAULT_SLIDES = [
+  { id: 'gh-1', title: 'Buy Data Instantly', description: 'MTN, Telecel & AirtelTigo — delivered in seconds', background: '#142b1b', color: '#ffffff', glow: true, logo: true },
+  { id: 'gh-2', title: 'MTN Bundles from GHS 4.80', description: "Ghana's largest network", background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#0A0F1E' },
+  { id: 'gh-3', title: 'No login. No stress.', description: 'Pick, pay, done. easy works for everyone.', background: '#030706', color: '#ffffff', accent: true },
 ]
 
+function DefaultSlide({ slide }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-6 text-center" style={{ background: slide.background, color: slide.color }}>
+      {slide.glow && <span className="glow-mesh pointer-events-none absolute inset-0" />}
+      {slide.logo && <LogoMark className="relative h-12 w-12" />}
+      {slide.accent && <span className="relative h-1 w-10 rounded-full bg-brand" />}
+      <h3 className="relative font-display text-xl font-bold leading-tight sm:text-2xl">{slide.title}</h3>
+      <p className="relative max-w-sm text-sm opacity-90 sm:text-base">{slide.description}</p>
+    </div>
+  )
+}
+
+function MediaSlide({ ad }) {
+  return (
+    <div className="relative h-full w-full bg-black">
+      {ad.mediaType === 'video' ? (
+        <video src={ad.mediaUrl} autoPlay muted loop playsInline className="h-full w-full object-cover" />
+      ) : (
+        <img src={ad.mediaUrl} alt={ad.title || ''} className="h-full w-full object-cover" />
+      )}
+      {(ad.title || ad.description) && (
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pb-8 text-left">
+          {ad.title && <h3 className="font-display text-lg font-bold leading-tight text-white">{ad.title}</h3>}
+          {ad.description && <p className="mt-0.5 text-xs text-white/85">{ad.description}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Top-of-home banner carousel. Renders easy ads (images + autoplay-muted-loop
+// videos) from /gheasy/ads when present; otherwise the default promo slides.
 export default function AdCarousel() {
+  const [ads, setAds] = useState(null)
   const [index, setIndex] = useState(0)
   const timer = useRef(null)
-  const count = SLIDES.length
 
   useEffect(() => {
+    let alive = true
+    fetch(`${BASE}/gheasy/ads`)
+      .then((r) => r.json())
+      .then((d) => { if (alive && d?.success && Array.isArray(d.ads) && d.ads.length) setAds(d.ads) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
+  const isMedia = !!(ads && ads.length)
+  const slides = isMedia ? ads : DEFAULT_SLIDES
+  const count = slides.length
+
+  useEffect(() => {
+    setIndex(0)
     if (count <= 1) return undefined
-    timer.current = setInterval(() => setIndex((i) => (i + 1) % count), 4000)
+    timer.current = setInterval(() => setIndex((i) => (i + 1) % count), 5000)
     return () => clearInterval(timer.current)
   }, [count])
 
   const goTo = (i) => {
     setIndex(i)
     clearInterval(timer.current)
-    if (count > 1) timer.current = setInterval(() => setIndex((p) => (p + 1) % count), 4000)
+    if (count > 1) timer.current = setInterval(() => setIndex((p) => (p + 1) % count), 5000)
   }
 
-  const slide = SLIDES[index]
+  const slide = slides[Math.min(index, count - 1)]
+  const content = isMedia ? <MediaSlide ad={slide} /> : <DefaultSlide slide={slide} />
+  const body = isMedia && slide.linkUrl ? (
+    <a href={slide.linkUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">{content}</a>
+  ) : content
 
   return (
     <div className="relative h-[180px] w-full overflow-hidden rounded-2xl border border-border md:h-[230px]">
@@ -59,33 +89,25 @@ export default function AdCarousel() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -60 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center"
-          style={{ background: slide.background, color: slide.color }}
+          className="absolute inset-0"
         >
-          {slide.glow && <span className="glow-mesh pointer-events-none absolute inset-0" />}
-          {slide.logo && <LogoMark className="relative h-12 w-12" />}
-          {slide.accent && <span className="relative h-1 w-10 rounded-full bg-brand" />}
-          <h3 className="relative font-display text-xl font-bold leading-tight sm:text-2xl">
-            {slide.title}
-          </h3>
-          <p className="relative max-w-sm text-sm opacity-90 sm:text-base">{slide.description}</p>
+          {body}
         </motion.div>
       </AnimatePresence>
 
-      {/* Dot indicators */}
-      <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-1.5">
-        {SLIDES.map((s, i) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => goTo(i)}
-            aria-label={`Show slide ${i + 1}`}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === index ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
-            }`}
-          />
-        ))}
-      </div>
+      {count > 1 && (
+        <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center gap-1.5">
+          {slides.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={`Show slide ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
