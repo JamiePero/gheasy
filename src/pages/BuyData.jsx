@@ -8,7 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
-import { getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
+import { clearStoredRefCode, getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
   detectNetworkFamily,
@@ -99,6 +99,8 @@ export default function BuyData() {
     () => bundles.find((b) => b.id === selectedId) || null,
     [bundles, selectedId],
   )
+  const [refCode, setRefCode] = useState('')
+  const [storedRef] = useState(() => getStoredRefCode())
 
   const phoneValid = isValidGhPhone(phone)
   const detectedFam = detectNetworkFamily(phone)
@@ -130,11 +132,13 @@ export default function BuyData() {
         volumeInMB: selectedBundle.volumeInMB,
         gbAmount: selectedBundle.raw?.gbAmount,
         bundleName: selectedBundle.name,
-        referralCode: getStoredRefCode(),
+        // Manual checkout entry wins over the ?ref= link; either is fine, or none.
+        referralCode: refCode.trim() || storedRef || undefined,
       })
       const url = findPaystackUrl(data)
       if (!url) throw new Error('No payment link was returned. Please try again.')
       saveProfile({ phone: cleanPhone })
+      clearStoredRefCode() // attached to this purchase — don't re-credit next time
       track('purchase_initiated', {
         network,
         bundle: selectedBundle.volume || selectedBundle.name,
@@ -177,6 +181,21 @@ export default function BuyData() {
           <section>
             <h2 className="mb-3 text-sm font-semibold text-fg">2. Recipient number</h2>
             <PhoneInput value={phone} onChange={setPhone} error={phoneError} />
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-fg">
+              Referral code <span className="font-normal text-muted">(optional)</span>
+            </h2>
+            <input
+              value={refCode}
+              onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+              placeholder={storedRef ? `${storedRef} applied — or enter another` : 'e.g. EZ-OO903V'}
+              className="w-full rounded-2xl border border-border bg-card px-3.5 py-3 text-[15px] font-medium uppercase text-fg outline-none transition-colors focus:border-brand placeholder:font-normal placeholder:normal-case placeholder:text-muted/50"
+            />
+            {storedRef && !refCode.trim() && (
+              <p className="mt-1.5 text-xs text-brand">Referral code {storedRef} applied from your link.</p>
+            )}
           </section>
 
           {/* Bundles */}

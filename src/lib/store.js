@@ -114,6 +114,13 @@ export function getStoredRefCode() {
   }
 }
 
+// Clear the stored ref after it's been attached to a purchase, so it can't
+// re-credit on a later purchase by the same person.
+export function clearStoredRefCode() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return
+  try { localStorage.removeItem(REF_CODE_KEY) } catch { /* ignore */ }
+}
+
 // --- Agent store -----------------------------------------------------------
 
 export function getAgentStore() {
