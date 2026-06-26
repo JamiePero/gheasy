@@ -8,7 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
-import { getProfile, saveProfile } from '../lib/store.js'
+import { getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
   detectNetworkFamily,
@@ -130,6 +130,7 @@ export default function BuyData() {
         volumeInMB: selectedBundle.volumeInMB,
         gbAmount: selectedBundle.raw?.gbAmount,
         bundleName: selectedBundle.name,
+        referralCode: getStoredRefCode(),
       })
       const url = findPaystackUrl(data)
       if (!url) throw new Error('No payment link was returned. Please try again.')

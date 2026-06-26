@@ -97,11 +97,11 @@ export function findReference(json) {
  * checkout. Returns the raw response ({ success, ... }); callers read the
  * authorization URL + reference from it (see findPaystackUrl / findReference).
  */
-export async function initiatePurchase({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName }) {
+export async function initiatePurchase({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName, referralCode }) {
   const res = await fetch(`${BASE}/gheasy/purchase`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName }),
+    body: JSON.stringify({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName, referralCode }),
   })
   const data = await res.json()
   if (!data.success) throw new Error(data.error || 'Failed to initiate purchase')

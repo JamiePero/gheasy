@@ -14,6 +14,7 @@ import DomainGuard from './components/DomainGuard.jsx'
 import { AgentHeader, AgentBottomNav } from './components/AgentChrome.jsx'
 import { isAgentHost } from './lib/host.js'
 import { appReady } from './lib/appReady.js'
+import { captureRefFromUrl } from './lib/store.js'
 
 // Clean full-screen maintenance notice shown to easy customers when the admin
 // has toggled maintenance mode on (config/easy in Firestore).
@@ -45,6 +46,7 @@ export default function App() {
   // Maintenance gate — easy customers see a clean screen when admin toggles it
   // on; /admin stays accessible so it can be turned back off.
   useEffect(() => {
+    captureRefFromUrl()
     if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) return
     fetch('https://api.getflashx.com/gheasy/maintenance-status')
       .then((r) => r.json())

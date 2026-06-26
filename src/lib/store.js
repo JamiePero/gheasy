@@ -91,6 +91,29 @@ export function getReferralCode() {
   return code
 }
 
+// --- Incoming referral code (?ref=) ----------------------------------------
+const REF_CODE_KEY = 'gheasy-ref-code'
+
+// Capture ?ref=EZ-XXXX from the URL on load so it rides along to the purchase.
+export function captureRefFromUrl() {
+  if (typeof window === 'undefined') return
+  try {
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref && ref.trim()) localStorage.setItem(REF_CODE_KEY, ref.trim().toUpperCase())
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getStoredRefCode() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null
+  try {
+    return localStorage.getItem(REF_CODE_KEY) || null
+  } catch {
+    return null
+  }
+}
+
 // --- Agent store -----------------------------------------------------------
 
 export function getAgentStore() {
