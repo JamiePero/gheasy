@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Standalone "easy Admin" PWA icon. Full-bleed dark-green background so
+       Android's maskable crop never shows white. A bright-green shield + white
+       keyhole marks it as the secure admin app — visually distinct from the
+       customer icon (dark bg + thin white "e"). All content sits inside the
+       maskable safe zone (central ~80% circle). -->
+  <rect width="512" height="512" fill="#050f05"/>
+  <path d="M256 130 L352 168 V258 C352 322 311 363 256 390 C201 363 160 322 160 258 V168 Z"
+        fill="#22C55E"/>
+  <circle cx="256" cy="232" r="27" fill="#ffffff"/>
+  <path d="M243 250 H269 L279 318 H233 Z" fill="#ffffff"/>
+</svg>

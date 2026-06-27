@@ -16,6 +16,27 @@
     <link rel="apple-touch-icon" href="/easytra.png" />
     <link rel="manifest" href="/manifest.json" />
 
+    <!-- Admin PWA bootstrap: on /admin ONLY, swap to the standalone admin
+         manifest + iOS title before paint, and capture the install prompt for
+         the in-page "Install Admin App" button. Customer pages return early, so
+         the main easy PWA manifest and install flow are completely untouched. -->
+    <script>
+      (function () {
+        try {
+          if (!location.pathname.startsWith('/admin')) return;
+          var m = document.querySelector('link[rel="manifest"]');
+          if (m) m.setAttribute('href', '/admin-manifest.json');
+          var t = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+          if (t) t.setAttribute('content', 'easy Admin');
+          window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.__adminInstallPrompt = e;
+            window.dispatchEvent(new Event('admin-install-ready'));
+          });
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- Google Analytics (GA4) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-G8SFJSCPXE"></script>
     <script>

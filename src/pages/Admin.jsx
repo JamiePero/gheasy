@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import AdminInstallPrompt from '../components/AdminInstallPrompt.jsx'
 import { formatCedis } from '../lib/format.js'
 
 const BASE = 'https://api.getflashx.com'
@@ -922,6 +923,8 @@ export default function Admin() {
           <button onClick={logout} className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-fg">Log out</button>
         )}
       </div>
+
+      <AdminInstallPrompt />
 
       {!token ? (
         <div className="mt-8"><AdminLogin onAuthed={setToken} /></div>
