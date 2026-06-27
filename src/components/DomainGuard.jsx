@@ -26,9 +26,11 @@ export default function DomainGuard() {
       // Anything that isn't an agent path belongs on the customer site.
       if (!isAgentPath(pathname)) window.location.replace(CUSTOMER_ORIGIN + pathname + search)
     } else {
-      // Customer domain: agent-only paths live on the agent subdomain.
+      // Customer domain: agent-only paths live on the agent subdomain. The
+      // unified login + /account + /register stay HERE (customers shouldn't be
+      // bounced to an "agent" site); only the agent dashboard/store redirect.
       if (pathname === '/agent') return void window.location.replace(`${AGENT_ORIGIN}/`)
-      if (pathname === '/agent/login' || pathname === '/login') return void window.location.replace(`${AGENT_ORIGIN}/login`)
+      if (pathname === '/agent/login') return void window.location.replace(`${AGENT_ORIGIN}/login`)
       if (pathname === '/agent/dashboard' || pathname === '/dashboard') return void window.location.replace(`${AGENT_ORIGIN}/dashboard`)
       if (pathname.startsWith('/store/')) window.location.replace(AGENT_ORIGIN + pathname + search)
     }

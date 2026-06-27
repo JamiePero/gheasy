@@ -151,6 +151,42 @@ export const loginAgent = ({ phone, pin }) => agentAuthPost('/gheasy/auth/login'
 export const resendAgentPayment = ({ phone, pin }) =>
   agentAuthPost('/gheasy/auth/resend-payment', { phone, pin })
 
+// --- Unified login & free customer accounts --------------------------------
+
+// One login for both tiers → { type:'agent'|'customer', token, agent|customer }.
+// Throws with .status set (403 = agent registered but joining fee unpaid).
+export const loginAccount = ({ phone, pin }) => agentAuthPost('/gheasy/auth/login', { phone, pin })
+
+// Free customer signup (phone + PIN + name, no payment, active immediately).
+export const registerCustomer = ({ phone, pin, name }) =>
+  agentAuthPost('/gheasy/customer/register', { phone, pin, name })
+
+export async function fetchCustomerMe(token) {
+  const res = await fetch(`${BASE}/gheasy/customer/me`, { headers: { 'x-customer-token': token } })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) { const e = new Error(data.error || 'Could not load your account.'); e.status = res.status; throw e }
+  return data
+}
+
+export async function fetchCustomerOrders(token) {
+  const res = await fetch(`${BASE}/gheasy/customer/orders`, { headers: { 'x-customer-token': token } })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) throw new Error(data.error || 'Could not load orders.')
+  return data.orders || []
+}
+
+// Upgrade a logged-in customer to a paid agent → { paymentUrl } for the GHS 60 fee.
+export async function upgradeToAgent({ token, storeName, supportWhatsapp }) {
+  const res = await fetch(`${BASE}/gheasy/customer/upgrade`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-customer-token': token },
+    body: JSON.stringify({ storeName, supportWhatsapp }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!data.success) throw new Error(data.error || 'Upgrade failed.')
+  return data
+}
+
 // --- Order status ----------------------------------------------------------
 
 const STATUS_MAP = {

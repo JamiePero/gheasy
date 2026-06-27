@@ -161,6 +161,29 @@ export function clearAgentSession() {
   setAccountCookie(null)
 }
 
+// --- Customer session (free customer accounts) -----------------------------
+// Same shape as the agent session, separate key. Customers are gheasy.com-only
+// (no cross-subdomain), so no hint cookie is needed.
+const CUSTOMER_SESSION_KEY = 'gheasy-customer-session'
+
+export function getCustomerSession() {
+  const s = read(CUSTOMER_SESSION_KEY, null)
+  if (!s || typeof s !== 'object' || !s.token || !s.customer) return null
+  return s
+}
+
+export function isCustomerLoggedIn() {
+  return getCustomerSession() !== null
+}
+
+export function saveCustomerSession(session) {
+  write(CUSTOMER_SESSION_KEY, session)
+}
+
+export function clearCustomerSession() {
+  write(CUSTOMER_SESSION_KEY, null)
+}
+
 // --- Cross-subdomain account hint ------------------------------------------
 // The auth session (with token) stays per-origin in localStorage. So the
 // customer site (gheasy.com) can tell an account is signed in on
@@ -199,12 +222,15 @@ function readAccountCookie() {
 // local session (same origin, has the token), else the shared cookie.
 export function getAccountHint() {
   const session = getAgentSession()
-  if (session?.agent) return { storeName: session.agent.storeName || '' }
+  if (session?.agent) return { type: 'agent', storeName: session.agent.storeName || '', name: session.agent.storeName || '' }
   // Same-origin agents also have their store cached under a separate key, which
   // the home "Manage your store" card reads — so the Login button must honour it
   // too, or the page shows the store AND a Login button at the same time.
   const store = getAgentStore()
-  if (store?.storeName) return { storeName: store.storeName }
-  // Cross-subdomain (signed in on agent.gheasy.com): the lightweight hint cookie.
+  if (store?.storeName) return { type: 'agent', storeName: store.storeName, name: store.storeName }
+  // Free customer account (gheasy.com, same origin).
+  const customer = getCustomerSession()
+  if (customer?.customer) return { type: 'customer', name: customer.customer.name || '', storeName: '' }
+  // Cross-subdomain (agent signed in on agent.gheasy.com): the lightweight cookie.
   return readAccountCookie()
 }

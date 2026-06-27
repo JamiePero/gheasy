@@ -4,7 +4,7 @@ import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { clearAgentSession, getAgentSession, saveAgentSession } from '../lib/store.js'
 import { formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
-import { CheckIcon, CopyIcon, ReceiptIcon, WalletIcon } from '../components/icons.jsx'
+import { CheckIcon, CopyIcon, GiftIcon, ReceiptIcon, WalletIcon } from '../components/icons.jsx'
 
 const BASE = 'https://api.getflashx.com'
 
@@ -49,6 +49,16 @@ export default function AgentDashboard() {
   const [supportNumber, setSupportNumber] = useState(() => agent?.supportWhatsapp || '')
   const [supportSaving, setSupportSaving] = useState(false)
   const [supportMsg, setSupportMsg] = useState(null) // { ok: boolean, text: string }
+
+  // ── Referral side — agents have it too; read the gheasy_referrers ledger by phone.
+  const [referral, setReferral] = useState(null)
+  useEffect(() => {
+    if (!agent?.phoneNumber) return
+    fetch(`${BASE}/gheasy/referrer/${encodeURIComponent(agent.phoneNumber)}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setReferral(d) })
+      .catch(() => {})
+  }, [agent?.phoneNumber])
 
   // Fresh dashboard data — the session is captured at login and goes stale, so
   // refetch earnings/orders on mount (Part 6).
@@ -321,6 +331,31 @@ export default function AgentDashboard() {
         <Button onClick={copyLink} variant="secondary" size="sm" icon={<CopyIcon className="h-4 w-4" />} className="mt-3">
           {copied ? 'Copied!' : 'Copy link'}
         </Button>
+      </div>
+
+      {/* Referral — agents earn referral points too (read from gheasy_referrers) */}
+      <div className="mt-4 rounded-3xl border border-border bg-card p-5 shadow-card">
+        <div className="flex items-center justify-between gap-3">
+          <p className="flex items-center gap-1.5 text-sm font-semibold"><GiftIcon className="h-4 w-4 text-brand" /> Your referral code</p>
+          {referral?.referralCode && (
+            <span className="font-display text-lg font-bold tracking-wide text-brand">{referral.referralCode}</span>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-muted">Share your code — earn points when a new number buys. Redeem for data or cash.</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border bg-surface p-3 text-center">
+            <p className="text-xs text-muted">Points</p>
+            <p className="font-display text-xl font-bold">{referral?.points ?? 0}</p>
+          </div>
+          <a
+            href="https://gheasy.com/rewards"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center rounded-2xl border border-brand/40 bg-brand/10 p-3 text-center text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
+          >
+            Redeem points
+          </a>
+        </div>
       </div>
 
       {/* WhatsApp support number — your store's support button reaches YOU */}

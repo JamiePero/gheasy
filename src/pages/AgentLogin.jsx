@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import { loginAgent, resendAgentPayment } from '../lib/api.js'
+import { loginAccount, resendAgentPayment } from '../lib/api.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
-import { saveAgentSession } from '../lib/store.js'
+import { saveAgentSession, saveCustomerSession } from '../lib/store.js'
+import { isAgentHost, AGENT_ORIGIN, CUSTOMER_ORIGIN } from '../lib/host.js'
 import { track } from '../lib/analytics.js'
 import { WHATSAPP_NUMBER } from '../config.js'
 import { AlertIcon, ArrowLeftIcon, ClockIcon, ShieldIcon } from '../components/icons.jsx'
@@ -50,10 +51,27 @@ export default function AgentLogin() {
     if (!valid) return
     setLoading(true)
     try {
-      const data = await loginAgent({ phone: normalizePhone(form.phone), pin: form.pin })
-      saveAgentSession({ token: data.token, agent: data.agent })
-      track('agent_login', {})
-      navigate('/dashboard')
+      const data = await loginAccount({ phone: normalizePhone(form.phone), pin: form.pin })
+      const onAgentHost = isAgentHost()
+      if (data.type === 'customer') {
+        track('customer_login', {})
+        if (onAgentHost) {
+          // Customer session belongs on the customer origin → hand off.
+          window.location.replace(`${CUSTOMER_ORIGIN}/account#sso=${data.token}&t=customer`)
+        } else {
+          saveCustomerSession({ token: data.token, customer: data.customer })
+          navigate('/account')
+        }
+      } else {
+        track('agent_login', {})
+        if (onAgentHost) {
+          saveAgentSession({ token: data.token, agent: data.agent })
+          navigate('/dashboard')
+        } else {
+          // Agent session belongs on the agent origin → hand off the token.
+          window.location.replace(`${AGENT_ORIGIN}/dashboard#sso=${data.token}&t=agent`)
+        }
+      }
     } catch (err) {
       if (err.status === 403 && /joining fee/i.test(err.message)) {
         setNeedsPayment(true) // registered but never paid → offer to complete payment
@@ -170,12 +188,16 @@ export default function AgentLogin() {
               Forgot your PIN?
             </a>
           )}
-          <p className="text-center text-sm text-muted">
-            New here?{' '}
-            <Link to="/" className="font-semibold text-brand">
-              Create an account
-            </Link>
-          </p>
+          <div className="space-y-2 pt-1 text-center text-sm text-muted">
+            <p>
+              New here?{' '}
+              <Link to="/register" className="font-semibold text-brand">Create a free account</Link>
+            </p>
+            <p>
+              Want your own store?{' '}
+              <Link to="/agent" className="font-semibold text-brand">Become an agent ({formatCedis(AGENT_FEE)})</Link>
+            </p>
+          </div>
         </form>
       )}
     </Page>

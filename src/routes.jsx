@@ -6,6 +6,8 @@ import History from './pages/History.jsx'
 import OrderStatus from './pages/OrderStatus.jsx'
 import Refer from './pages/Refer.jsx'
 import MyRewards from './pages/MyRewards.jsx'
+import CustomerRegister from './pages/CustomerRegister.jsx'
+import Account from './pages/Account.jsx'
 import Agent from './pages/Agent.jsx'
 import AgentLogin from './pages/AgentLogin.jsx'
 import AgentDashboard from './pages/AgentDashboard.jsx'
@@ -54,6 +56,8 @@ export const routes = [
       { path: 'order-status', element: <OrderStatus /> },
       { path: 'refer', element: <Refer /> },
       { path: 'rewards', element: <MyRewards /> },
+      { path: 'register', element: <CustomerRegister /> },
+      { path: 'account', element: <Account /> },
       { path: 'more', element: <More /> },
       { path: 'about', element: <About /> },
       { path: 'admin', element: <Admin /> },

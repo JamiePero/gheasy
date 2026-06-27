@@ -14,7 +14,7 @@ import DomainGuard from './components/DomainGuard.jsx'
 import { AgentHeader, AgentBottomNav } from './components/AgentChrome.jsx'
 import { isAgentHost } from './lib/host.js'
 import { appReady } from './lib/appReady.js'
-import { captureRefFromUrl } from './lib/store.js'
+import { captureRefFromUrl, saveAgentSession, saveCustomerSession } from './lib/store.js'
 
 // Clean full-screen maintenance notice shown to easy customers when the admin
 // has toggled maintenance mode on (config/easy in Firestore).
@@ -42,6 +42,36 @@ export default function App() {
   const agentHost = isAgentHost()
   const [showSplash, setShowSplash] = useState(false)
   const [maint, setMaint] = useState(null)
+
+  // Cross-subdomain login handoff. The unified login can produce an account
+  // whose session belongs on the OTHER origin (agent on agent.gheasy.com,
+  // customer on gheasy.com). It redirects here with #sso=<token>&t=<type>;
+  // adopt the session on this origin, strip the hash, then reload so the routed
+  // page mounts with the session in place.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.location.hash.includes('sso=')) return
+    const params = new URLSearchParams(window.location.hash.slice(1))
+    const token = params.get('sso')
+    const t = params.get('t')
+    if (!token) return
+    const finish = () => {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      window.location.reload()
+    }
+    const url = t === 'agent'
+      ? 'https://api.getflashx.com/gheasy/agent/dashboard'
+      : 'https://api.getflashx.com/gheasy/customer/me'
+    const header = t === 'agent' ? 'x-agent-token' : 'x-customer-token'
+    fetch(url, { headers: { [header]: token } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (t === 'agent' && d.success && d.agent) saveAgentSession({ token, agent: d.agent })
+        else if (t === 'customer' && d.success) saveCustomerSession({ token, customer: { phoneNumber: d.customer.phoneNumber, name: d.customer.name } })
+      })
+      .catch(() => {})
+      .finally(finish)
+  }, [])
 
   // Maintenance gate — easy customers see a clean screen when admin toggles it
   // on; /admin stays accessible so it can be turned back off.

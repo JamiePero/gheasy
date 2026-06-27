@@ -8,7 +8,7 @@ import InstallSection from '../components/InstallSection.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { fetchBundles } from '../lib/api.js'
-import { getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
+import { getAccountHint, getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import Seo from '../components/Seo.jsx'
 import { BALANCE_CODES } from '../config.js'
@@ -23,19 +23,35 @@ import {
   GlobeIcon,
   ReceiptIcon,
   ShieldIcon,
+  UsersIcon,
 } from '../components/icons.jsx'
 
-// Home-only "My Rewards" button → the phone-based referral rewards page.
-// Visible to everyone (no login needed to check or redeem points).
+// General account entry. Logged out → "Login" (free customer or agent). Logged
+// in → the right account (customer → /account, agent → /dashboard), so the
+// Login button never shows alongside a signed-in account.
 function AccountButton() {
+  const hint = getAccountHint()
+  if (!hint) {
+    return (
+      <Link
+        to="/login"
+        aria-label="Log in or create an account"
+        className="flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
+      >
+        <UsersIcon className="h-4 w-4" />
+        Login
+      </Link>
+    )
+  }
+  const isCustomer = hint.type === 'customer'
   return (
     <Link
-      to="/rewards"
-      aria-label="My Rewards"
+      to={isCustomer ? '/account' : '/dashboard'}
+      aria-label="My account"
       className="flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/20"
     >
-      <GiftIcon className="h-4 w-4" />
-      My Rewards
+      <UsersIcon className="h-4 w-4" />
+      {isCustomer ? (firstName(hint.name) || 'Account') : 'My Store'}
     </Link>
   )
 }
