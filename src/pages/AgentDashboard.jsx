@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
-import { clearAgentSession, getAgentSession } from '../lib/store.js'
-import { formatCedis } from '../lib/format.js'
+import { clearAgentSession, getAgentSession, saveAgentSession } from '../lib/store.js'
+import { formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { CheckIcon, CopyIcon, ReceiptIcon, WalletIcon } from '../components/icons.jsx'
 
 const BASE = 'https://api.getflashx.com'
@@ -42,6 +42,13 @@ export default function AgentDashboard() {
   const [fees, setFees] = useState({}) // bundleKey -> { paystackFee, smsFee, serviceFee, agentEarnings }
   const [feesLoading, setFeesLoading] = useState({})
   const feeTimers = useRef({})
+
+  // ── Support WhatsApp settings ──────────────────────────────────────────────
+  // Pre-filled from the logged-in session. Agents who registered before this
+  // field existed start empty and their store falls back to the main easy line.
+  const [supportNumber, setSupportNumber] = useState(() => agent?.supportWhatsapp || '')
+  const [supportSaving, setSupportSaving] = useState(false)
+  const [supportMsg, setSupportMsg] = useState(null) // { ok: boolean, text: string }
 
   // Fresh dashboard data — the session is captured at login and goes stale, so
   // refetch earnings/orders on mount (Part 6).
@@ -244,6 +251,34 @@ export default function AgentDashboard() {
     }
   }
 
+  // ── Save support WhatsApp number ───────────────────────────────────────────
+  async function saveSupportNumber() {
+    setSupportMsg(null)
+    if (!isValidGhPhone(supportNumber)) {
+      setSupportMsg({ ok: false, text: 'Enter a valid Ghana number, e.g. 024 123 4567.' })
+      return
+    }
+    setSupportSaving(true)
+    try {
+      const clean = normalizePhone(supportNumber)
+      const res = await fetch(`${BASE}/gheasy/agent/store`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-agent-token': token },
+        body: JSON.stringify({ supportWhatsapp: clean }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) throw new Error(data.error || `Save failed (HTTP ${res.status}).`)
+      // Persist to the local session so it survives reloads and the store page uses it.
+      if (session) saveAgentSession({ ...session, agent: { ...agent, supportWhatsapp: clean } })
+      setSupportNumber(clean)
+      setSupportMsg({ ok: true, text: 'Saved. Your store support button now reaches this number.' })
+    } catch (e) {
+      setSupportMsg({ ok: false, text: e.message || 'Couldn’t save. Please try again.' })
+    } finally {
+      setSupportSaving(false)
+    }
+  }
+
   // Group bundles by network for pricing editor
   const networkGroups = bundles.reduce((acc, b) => {
     const net = b.network || 'other'
@@ -286,6 +321,33 @@ export default function AgentDashboard() {
         <Button onClick={copyLink} variant="secondary" size="sm" icon={<CopyIcon className="h-4 w-4" />} className="mt-3">
           {copied ? 'Copied!' : 'Copy link'}
         </Button>
+      </div>
+
+      {/* WhatsApp support number — your store's support button reaches YOU */}
+      <div className="mt-4 rounded-3xl border border-border bg-card p-5 shadow-card">
+        <p className="text-sm font-semibold">WhatsApp support number</p>
+        <p className="mt-0.5 text-xs text-muted">
+          The support button on your store opens a chat to this number — keep it set to your own WhatsApp so customers reach you, not the main easy line.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            type="tel"
+            inputMode="numeric"
+            placeholder="024 123 4567"
+            value={supportNumber}
+            onChange={(e) => { setSupportNumber(e.target.value); setSupportMsg(null) }}
+            className="min-w-0 flex-1 rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-brand"
+          />
+          <Button onClick={saveSupportNumber} loading={supportSaving} size="sm" className="shrink-0">
+            Save
+          </Button>
+        </div>
+        {supportMsg && (
+          <p className={`mt-2 text-xs ${supportMsg.ok ? 'text-brand' : 'text-red-500'}`}>{supportMsg.text}</p>
+        )}
+        {!supportNumber.trim() && !supportMsg && (
+          <p className="mt-2 text-xs text-amber-500">No number set — your store uses the main easy support line until you save one.</p>
+        )}
       </div>
 
       {/* Cashout */}
