@@ -100,6 +100,7 @@ export default function BuyData() {
     [bundles, selectedId],
   )
   const [refCode, setRefCode] = useState('')
+  const [showRef, setShowRef] = useState(false)
   const [storedRef] = useState(() => getStoredRefCode())
 
   const phoneValid = isValidGhPhone(phone)
@@ -183,20 +184,32 @@ export default function BuyData() {
             <PhoneInput value={phone} onChange={setPhone} error={phoneError} />
           </section>
 
-          <section>
-            <h2 className="mb-3 text-sm font-semibold text-fg">
-              Referral code <span className="font-normal text-muted">(optional)</span>
-            </h2>
-            <input
-              value={refCode}
-              onChange={(e) => setRefCode(e.target.value.toUpperCase())}
-              placeholder={storedRef ? `${storedRef} applied — or enter another` : 'e.g. EZ-OO903V'}
-              className="w-full rounded-2xl border border-border bg-card px-3.5 py-3 text-[15px] font-medium uppercase text-fg outline-none transition-colors focus:border-brand placeholder:font-normal placeholder:normal-case placeholder:text-muted/50"
-            />
-            {storedRef && !refCode.trim() && (
-              <p className="mt-1.5 text-xs text-brand">Referral code {storedRef} applied from your link.</p>
+          {/* Optional referral code — collapsed by default so it never adds a
+              step. The core flow stays: pick bundle, enter phone, pay. */}
+          <div>
+            {showRef || refCode ? (
+              <>
+                <input
+                  value={refCode}
+                  onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+                  placeholder={storedRef ? `${storedRef} applied — or enter another` : 'Referral code (e.g. EZ-OO903V)'}
+                  autoFocus
+                  className="w-full rounded-2xl border border-border bg-card px-3.5 py-3 text-[15px] font-medium uppercase text-fg outline-none transition-colors focus:border-brand placeholder:font-normal placeholder:normal-case placeholder:text-muted/50"
+                />
+                {storedRef && !refCode.trim() && (
+                  <p className="mt-1.5 text-xs text-brand">Referral code {storedRef} applied from your link.</p>
+                )}
+              </>
+            ) : storedRef ? (
+              <button type="button" onClick={() => setShowRef(true)} className="text-xs font-medium text-brand transition-opacity hover:opacity-80">
+                Referral code {storedRef} applied · change
+              </button>
+            ) : (
+              <button type="button" onClick={() => setShowRef(true)} className="text-xs font-medium text-muted transition-colors hover:text-brand">
+                Have a referral code?
+              </button>
             )}
-          </section>
+          </div>
 
           {/* Bundles */}
           <section>
