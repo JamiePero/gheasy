@@ -112,8 +112,15 @@ export default function BuyData() {
     : triedSubmit && !phoneValid
       ? 'Enter a valid Ghana number (e.g. 024 123 4567).'
       : ''
-  const canPay = phoneValid && !mismatch && !!selectedBundle && !submitting
   const net = getNetwork(network)
+  // A network is "disabled" when every bundle the server returned for it is
+  // flagged unavailable (the per-network admin kill switch). Server still
+  // rejects on submit regardless — this is just the UX.
+  const networkDisabled = bundles.length > 0 && bundles.every((b) => b.available === false)
+  const unavailableMsg =
+    bundles.find((b) => b.unavailableMessage)?.unavailableMessage ||
+    `${net.label} purchases are temporarily unavailable. Please try again shortly.`
+  const canPay = phoneValid && !mismatch && !!selectedBundle && !networkDisabled && !submitting
 
   const reload = () => setReloadFlag((f) => f + 1)
 
@@ -253,7 +260,17 @@ export default function BuyData() {
               </div>
             )}
 
-            {!loading && !loadError && bundles.length > 0 && (
+            {!loading && !loadError && networkDisabled && (
+              <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-4">
+                <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                <div>
+                  <p className="text-sm font-semibold text-fg">{net.label} is temporarily unavailable</p>
+                  <p className="mt-0.5 text-xs text-muted">{unavailableMsg}</p>
+                </div>
+              </div>
+            )}
+
+            {!loading && !loadError && bundles.length > 0 && !networkDisabled && (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {bundles.map((b) => (
                   <BundleCard

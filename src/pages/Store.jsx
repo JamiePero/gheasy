@@ -137,8 +137,14 @@ export default function Store() {
 
   const selectedBundle = filteredBundles.find((b) => (b.id || b.name) === selectedId) || null
   const phoneValid = isValidGhPhone(phone)
-  const canPay = phoneValid && !!selectedBundle && !submitting
   const net = getNetwork(network)
+  // Network disabled by the admin kill switch when all its bundles are flagged
+  // unavailable. The server rejects the purchase regardless — this is the UX.
+  const networkDisabled = filteredBundles.length > 0 && filteredBundles.every((b) => b.available === false)
+  const unavailableMsg =
+    filteredBundles.find((b) => b.unavailableMessage)?.unavailableMessage ||
+    `${net.label} purchases are temporarily unavailable. Please try again shortly.`
+  const canPay = phoneValid && !!selectedBundle && !networkDisabled && !submitting
 
   async function handlePay() {
     setTriedSubmit(true)
@@ -225,6 +231,14 @@ export default function Store() {
         <h2 className="mb-3 text-sm font-semibold text-fg">3. Choose a bundle</h2>
         {filteredBundles.length === 0 ? (
           <p className="text-sm text-muted">No {net.label} bundles available right now.</p>
+        ) : networkDisabled ? (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-4">
+            <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div>
+              <p className="text-sm font-semibold text-fg">{net.label} is temporarily unavailable</p>
+              <p className="mt-0.5 text-xs text-muted">{unavailableMsg}</p>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredBundles.map((b) => (

@@ -821,6 +821,99 @@ function Maintenance({ token, onUnauth }) {
   )
 }
 
+// ── Per-network purchase toggles (config/easy networkStatus) ──
+const EASY_NETWORKS = [
+  { key: 'mtn', label: 'MTN' },
+  { key: 'telecel', label: 'Telecel' },
+  { key: 'airteltigo_ishare', label: 'AirtelTigo iShare' },
+  { key: 'airteltigo_bigtime', label: 'AirtelTigo Bigtime' },
+]
+
+function Networks({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/network-status', token, onUnauth)
+  const [busyKey, setBusyKey] = useState(null)
+  const [msgs, setMsgs] = useState({})
+  const [note, setNote] = useState('')
+
+  // Seed message drafts from the server once, without clobbering local edits.
+  useEffect(() => {
+    if (data?.networkMessages) setMsgs((m) => ({ ...data.networkMessages, ...m }))
+  }, [data])
+
+  const status = data?.networkStatus || {}
+
+  const apply = async (key, available, message) => {
+    setBusyKey(key)
+    setNote('')
+    try {
+      await adminFetch('/gheasy/admin/network-status', {
+        token, method: 'POST', onUnauth,
+        body: { network: key, available, message },
+      })
+      await reload()
+      const label = EASY_NETWORKS.find((n) => n.key === key)?.label || key
+      setNote(`${label}: ${available ? 'enabled — buying resumed' : 'disabled — purchases blocked'}.`)
+    } catch (e) {
+      setNote(e.message)
+    } finally {
+      setBusyKey(null)
+    }
+  }
+
+  if (loading) return <Card className="max-w-lg"><p className="text-sm text-muted">Loading networks…</p></Card>
+  return (
+    <Card className="max-w-lg">
+      <h2 className="text-lg font-bold">Network availability</h2>
+      <p className="mt-1 text-xs text-muted">
+        Disable buying for one network (e.g. provider congestion) without taking the whole site into maintenance. Enforced server-side on every purchase.
+      </p>
+      <Notice error={error} />
+      <div className="mt-4 space-y-3">
+        {EASY_NETWORKS.map((n) => {
+          const on = status[n.key] !== false
+          const busy = busyKey === n.key
+          return (
+            <div key={n.key} className={`rounded-2xl border p-4 ${on ? 'border-border bg-surface' : 'border-red-500/40 bg-red-500/[0.07]'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${on ? 'bg-brand' : 'bg-red-500'}`} />
+                  <div>
+                    <p className="font-semibold">{n.label}</p>
+                    <p className="text-xs text-muted">{on ? 'Available' : 'Disabled — purchases blocked'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => apply(n.key, !on, msgs[n.key])}
+                  disabled={busy}
+                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${on ? 'border border-red-500/50 text-red-500' : 'bg-brand text-white'}`}
+                >
+                  {busy ? '…' : on ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={msgs[n.key] || ''}
+                  onChange={(e) => setMsgs((m) => ({ ...m, [n.key]: e.target.value }))}
+                  placeholder="Optional reason shown to customers"
+                  className={inp}
+                />
+                <button
+                  onClick={() => apply(n.key, on, msgs[n.key])}
+                  disabled={busy}
+                  className="shrink-0 rounded-2xl border border-border px-3 py-2 text-xs font-semibold text-muted hover:text-fg disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          )
+        })}
+        {note && <p className="text-xs text-brand">{note}</p>}
+      </div>
+    </Card>
+  )
+}
+
 // ── Admin OTP login (reuses /admin/send-otp + /admin/verify-otp) ──
 function AdminLogin({ onAuthed }) {
   const [step, setStep] = useState('email')
@@ -950,7 +1043,12 @@ export default function Admin() {
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
             {tab === 'ads' && <Ads {...sectionProps} />}
-            {tab === 'maintenance' && <Maintenance {...sectionProps} />}
+            {tab === 'maintenance' && (
+              <div className="space-y-6">
+                <Maintenance {...sectionProps} />
+                <Networks {...sectionProps} />
+              </div>
+            )}
             {tab === 'tools' && <Tools {...sectionProps} />}
           </div>
         </div>

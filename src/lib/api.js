@@ -43,6 +43,9 @@ function normalizeBundle(b, i) {
     description: b.description || '',
     validity: b.validity || b.expiry || b.duration || '',
     provider: b.provider || null,
+    // Per-network availability (server-driven) — default available when absent.
+    available: b.available !== false,
+    unavailableMessage: b.unavailableMessage || null,
     raw: b,
   }
 }
