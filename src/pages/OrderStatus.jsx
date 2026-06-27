@@ -6,7 +6,7 @@ import Button from '../components/Button.jsx'
 import Spinner from '../components/Spinner.jsx'
 import { NetworkBadge } from '../components/NetworkPicker.jsx'
 import { getOrder } from '../lib/api.js'
-import { saveOrder, updateOrder } from '../lib/store.js'
+import { clearStoredRefCode, saveOrder, updateOrder } from '../lib/store.js'
 import { formatCedis, getNetwork, prettyPhone } from '../lib/format.js'
 import {
   AlertIcon,
@@ -159,6 +159,14 @@ export default function OrderStatus() {
       }, 7000)
     }
     return () => clearInterval(pollTimer.current)
+  }, [result])
+
+  // Clear the stored ?ref= code only once the order has actually succeeded — not
+  // at checkout — so an abandoned-then-retried payment keeps the code. Runs for
+  // both the check-back from Paystack and the quiet poll loop (both setResult),
+  // and is idempotent (clearStoredRefCode just removes the key).
+  useEffect(() => {
+    if (result?.found && result.order?.status === 'success') clearStoredRefCode()
   }, [result])
 
   const onSubmit = (e) => {

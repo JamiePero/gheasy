@@ -8,7 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
-import { clearStoredRefCode, getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
+import { getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
 import {
   NETWORKS,
   detectNetworkFamily,
@@ -139,7 +139,9 @@ export default function BuyData() {
       const url = findPaystackUrl(data)
       if (!url) throw new Error('No payment link was returned. Please try again.')
       saveProfile({ phone: cleanPhone })
-      clearStoredRefCode() // attached to this purchase — don't re-credit next time
+      // The stored ?ref= code is intentionally NOT cleared here — it's cleared on
+      // the order-status screen once the order actually succeeds, so an
+      // abandoned-then-retried payment keeps the code for the retry.
       track('purchase_initiated', {
         network,
         bundle: selectedBundle.volume || selectedBundle.name,
