@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import Seo from '../components/Seo.jsx'
 import AdminInstallPrompt from '../components/AdminInstallPrompt.jsx'
 import { formatCedis } from '../lib/format.js'
 
@@ -666,7 +667,11 @@ function Ads({ token, onUnauth }) {
       const max = isVideo ? 10 * 1024 * 1024 : 3 * 1024 * 1024
       if (file.size > max) throw new Error(`${isVideo ? 'Video' : 'Image'} too large. Max ${isVideo ? '10MB' : '3MB'}.`)
       const b64 = await fileToBase64(file)
-      const body = { title: form.title, description: form.description, linkUrl: form.linkUrl, order: form.order, durationDays: form.durationDays }
+      // Store a full URL — prepend https:// when the admin omits the protocol on
+      // an external link, so the saved linkUrl opens correctly (never as a relative path).
+      const rawLink = String(form.linkUrl || '').trim()
+      const linkUrl = !rawLink || /^https?:\/\//i.test(rawLink) || rawLink.startsWith('/') ? rawLink : `https://${rawLink}`
+      const body = { title: form.title, description: form.description, linkUrl, order: form.order, durationDays: form.durationDays }
       if (isVideo) body.videoBase64 = b64
       else { body.imageBase64 = b64; body.imageMimeType = file.type }
       await adminFetch('/gheasy/admin/ads', { token, method: 'POST', onUnauth, body })
@@ -1010,6 +1015,7 @@ export default function Admin() {
 
   return (
     <Page className="wrap max-w-6xl pb-16 pt-8">
+      <Seo title="Admin · easy" noindex />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">easy admin</h1>
         {token && (

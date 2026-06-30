@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import Seo from '../components/Seo.jsx'
 import { getOrders, updateOrder } from '../lib/store.js'
 import { getOrder } from '../lib/api.js'
 import { formatCedis, getNetwork, prettyPhone } from '../lib/format.js'
@@ -50,6 +51,7 @@ export default function History() {
 
   return (
     <Page className="wrap-app pb-10 pt-6">
+      <Seo title="Order history | easy" noindex />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">History</h1>

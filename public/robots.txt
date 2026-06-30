@@ -1,6 +1,10 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Disallow: /admin/
+Disallow: /admin
+Disallow: /history
+Disallow: /account
+Disallow: /dashboard
+Disallow: /order-status
 
 Sitemap: https://gheasy.com/sitemap.xml

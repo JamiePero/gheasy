@@ -11,7 +11,33 @@ import { fetchBundles } from '../lib/api.js'
 import { getAccountHint, getAgentSession, getAgentStore, getOrders, getProfile } from '../lib/store.js'
 import { NETWORKS, firstName, formatCedis, getNetwork } from '../lib/format.js'
 import Seo from '../components/Seo.jsx'
-import { BALANCE_CODES } from '../config.js'
+import { BALANCE_CODES, SITE_URL } from '../config.js'
+
+// Organization + WebSite structured data for the homepage (no SearchAction —
+// the site has no on-site search). Linked by @id so they form one graph.
+const HOME_JSONLD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: 'easy',
+      alternateName: 'GhEasy',
+      url: SITE_URL,
+      logo: `${SITE_URL}/easytra.png`,
+      description: 'Buy MTN, Telecel and AirtelTigo data bundles in Ghana instantly via Mobile Money. No login required.',
+      areaServed: { '@type': 'Country', name: 'Ghana' },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      name: 'easy',
+      url: SITE_URL,
+      inLanguage: 'en-GH',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+    },
+  ],
+}
 import { markAppReady } from '../lib/appReady.js'
 import {
   ArrowRightIcon,
@@ -196,7 +222,11 @@ export default function Home() {
 
   return (
     <Page>
-      <Seo />
+      <Seo
+        title="Buy MTN, Telecel & AirtelTigo Data Bundles in Ghana | easy"
+        description="Buy Ghana data bundles instantly via MoMo. No login needed. MTN, Telecel & AirtelTigo. Instant delivery. easy."
+        jsonLd={HOME_JSONLD}
+      />
       {agent && (
         <div className="wrap-app pt-4">
           <div className="relative overflow-hidden rounded-3xl border border-brand/30 bg-brand/[0.06] p-4 shadow-card">
@@ -500,10 +530,10 @@ export default function Home() {
           </div>
           <div className="mx-auto mt-14 grid max-w-4xl grid-cols-3 gap-6">
             {NETWORKS.slice(0, 3).map((n) => (
-              <button
+              <Link
                 key={n.id}
-                onClick={() => navigate(`/buy-data?network=${n.id}`)}
-                aria-label={`Buy ${n.label} data`}
+                to={`/${n.id}-bundles`}
+                aria-label={`${n.label} data bundles in Ghana`}
                 className="group relative flex flex-col items-center gap-4 overflow-hidden rounded-3xl p-8 shadow-card transition-transform hover:-translate-y-1"
                 style={{ background: n.gradient, color: n.ink }}
               >
@@ -512,7 +542,7 @@ export default function Home() {
                   <p className="text-lg font-bold">{n.label}</p>
                   <p className="text-sm font-semibold opacity-90">{fromLabel(prices, pricesLoading, n.id)}</p>
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         </section>

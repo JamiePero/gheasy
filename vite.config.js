@@ -7,6 +7,7 @@ import react from '@vitejs/plugin-react'
 // rewrite fallback.
 const PRERENDER = [
   '/',
+  '/buy-data',
   '/about',
   '/how-it-works',
   '/faq',

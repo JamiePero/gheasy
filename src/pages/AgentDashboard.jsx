@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import Seo from '../components/Seo.jsx'
 import { clearAgentSession, getAgentSession, saveAgentSession } from '../lib/store.js'
 import { formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { CheckIcon, CopyIcon, GiftIcon, ReceiptIcon, WalletIcon } from '../components/icons.jsx'
@@ -299,6 +300,7 @@ export default function AgentDashboard() {
 
   return (
     <Page className="wrap-app pb-12 pt-6">
+      <Seo title="Agent dashboard | easy" noindex />
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>

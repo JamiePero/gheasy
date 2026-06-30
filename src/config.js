@@ -4,10 +4,10 @@ export const SITE_URL = 'https://gheasy.com'
 export const SITE_NAME = 'GhEasy'
 
 export const DEFAULT_TITLE =
-  'GhEasy — Buy MTN, Telecel & AirtelTigo Data Bundles in Ghana | No Login'
+  'Buy MTN, Telecel & AirtelTigo Data Bundles in Ghana | easy'
 
 export const DEFAULT_DESCRIPTION =
-  'Buy cheap MTN, Telecel & AirtelTigo data bundles in Ghana from GH₵1. Instant delivery via MoMo. No account needed — pick a bundle, pay, done. Ghana’s easiest data top-up.'
+  'Buy Ghana data bundles instantly via MoMo. No login needed. MTN, Telecel & AirtelTigo. Instant delivery. easy.'
 
 // Branded share image (existing asset). A dedicated 1200×630 og-image can be
 // designed later; this guarantees a working preview today.

@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { LogoMark } from './Logo.jsx'
 
 const BASE = 'https://api.getflashx.com'
+
+// Resolve an ad's linkUrl. External (http/https) → new tab; internal ("/path")
+// → in-app router navigation; empty → not clickable. A protocol-less value like
+// "example.com" is treated as EXTERNAL (https:// prepended) so it never resolves
+// as a relative path and lands on the SPA 404 page.
+function resolveAdLink(linkUrl) {
+  const u = String(linkUrl || '').trim()
+  if (!u) return null
+  if (/^https?:\/\//i.test(u)) return { external: true, href: u }
+  if (u.startsWith('/')) return { external: false, to: u }
+  return { external: true, href: `https://${u}` }
+}
 
 // Fallback promo slides shown until easy ads exist (managed in /admin → Ads / Media).
 const DEFAULT_SLIDES = [
@@ -23,13 +36,14 @@ function DefaultSlide({ slide }) {
   )
 }
 
-function MediaSlide({ ad }) {
+function MediaSlide({ ad, eager }) {
   return (
     <div className="relative h-full w-full bg-black">
       {ad.mediaType === 'video' ? (
         <video src={ad.mediaUrl} autoPlay muted loop playsInline className="h-full w-full object-cover" />
       ) : (
-        <img src={ad.mediaUrl} alt={ad.title || ''} className="h-full w-full object-cover" />
+        // First (above-the-fold) slide loads eagerly to protect LCP; the rest lazy-load.
+        <img src={ad.mediaUrl} alt={ad.title || ''} loading={eager ? 'eager' : 'lazy'} decoding="async" className="h-full w-full object-cover" />
       )}
       {(ad.title || ad.description) && (
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pb-8 text-left">
@@ -75,10 +89,15 @@ export default function AdCarousel() {
   }
 
   const slide = slides[Math.min(index, count - 1)]
-  const content = isMedia ? <MediaSlide ad={slide} /> : <DefaultSlide slide={slide} />
-  const body = isMedia && slide.linkUrl ? (
-    <a href={slide.linkUrl} target="_blank" rel="noopener noreferrer" className="block h-full w-full">{content}</a>
-  ) : content
+  const content = isMedia ? <MediaSlide ad={slide} eager={index === 0} /> : <DefaultSlide slide={slide} />
+  // Only media ads carry a linkUrl; image and video ads are handled identically.
+  const link = isMedia ? resolveAdLink(slide.linkUrl) : null
+  let body = content
+  if (link?.external) {
+    body = <a href={link.href} target="_blank" rel="noopener noreferrer" className="block h-full w-full">{content}</a>
+  } else if (link) {
+    body = <Link to={link.to} className="block h-full w-full">{content}</Link>
+  }
 
   return (
     <div className="relative h-[180px] w-full overflow-hidden rounded-2xl border border-border md:h-[230px]">

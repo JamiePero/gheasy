@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
+import Seo from '../components/Seo.jsx'
 import { fetchCustomerMe, fetchCustomerOrders, upgradeToAgent } from '../lib/api.js'
 import {
   AGENT_FEE,
@@ -162,6 +163,7 @@ export default function Account() {
 
   return (
     <Page className="wrap-app pb-16 pt-6">
+      <Seo title="My account | easy" noindex />
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted">My account</p>

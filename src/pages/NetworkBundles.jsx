@@ -1,6 +1,7 @@
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import Seo from '../components/Seo.jsx'
+import { SITE_URL } from '../config.js'
 import { ArrowRightIcon, CheckIcon } from '../components/icons.jsx'
 
 // Static, crawlable content per network. Sample bundles render in the initial
@@ -11,7 +12,7 @@ const NETWORKS = {
     code: '*138#',
     grad: 'linear-gradient(135deg,#ffcc00,#ffb300)',
     ink: '#1a1a00',
-    title: 'Buy MTN Data Bundles in Ghana | GhEasy — No Login',
+    title: 'Buy MTN Data Bundles Ghana | Cheap MTN Bundles | easy',
     description:
       'Buy cheap MTN Ghana data bundles via MoMo. Daily, weekly & monthly plans available. No login needed. Instant delivery. From GH₵1.',
     intro:
@@ -28,7 +29,7 @@ const NETWORKS = {
     code: '*126#',
     grad: 'linear-gradient(135deg,#e2231a,#b71c14)',
     ink: '#fff',
-    title: 'Buy Telecel Data Bundles in Ghana | GhEasy — No Login',
+    title: 'Buy Telecel Data Bundles Ghana | easy',
     description:
       'Buy cheap Telecel Ghana data bundles via MoMo. Daily, weekly & monthly plans. No login needed. Instant delivery. From GH₵1.',
     intro:
@@ -45,7 +46,7 @@ const NETWORKS = {
     code: '*504#',
     grad: 'linear-gradient(135deg,#0057b7,#e2231a)',
     ink: '#fff',
-    title: 'Buy AirtelTigo Data Bundles in Ghana | GhEasy — No Login',
+    title: 'Buy AirtelTigo Data Bundles Ghana | easy',
     description:
       'Buy cheap AirtelTigo Ghana data bundles via MoMo. Daily, weekly & monthly plans. No login needed. Instant delivery. From GH₵1.',
     intro:
@@ -63,9 +64,33 @@ export default function NetworkBundles({ network }) {
   const n = NETWORKS[network]
   if (!n) return null
 
+  // Product JSON-LD so Google can surface the bundles as rich results (GHS prices).
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `${n.label} Data Bundles in Ghana`,
+    itemListElement: n.bundles.map((b, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Product',
+        name: `${n.label} ${b.data} Data Bundle (${b.name})`,
+        category: 'Mobile data bundle',
+        brand: { '@type': 'Brand', name: n.label },
+        offers: {
+          '@type': 'Offer',
+          price: String(b.price).replace(/[^\d.]/g, ''),
+          priceCurrency: 'GHS',
+          availability: 'https://schema.org/InStock',
+          url: `${SITE_URL}/buy-data?network=${network}`,
+        },
+      },
+    })),
+  }
+
   return (
     <Page>
-      <Seo title={n.title} description={n.description} />
+      <Seo title={n.title} description={n.description} jsonLd={jsonLd} />
 
       <section className="wrap max-w-3xl py-12 md:py-16">
         <span

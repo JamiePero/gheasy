@@ -71,19 +71,8 @@
       rel="stylesheet"
     />
 
-    <!-- Organization structured data -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "GhEasy",
-        "url": "https://gheasy.com",
-        "logo": "https://gheasy.com/easytra.png",
-        "description": "Ghana's easiest way to buy MTN, Telecel and AirtelTigo data bundles. No login required. Pay via Mobile Money.",
-        "areaServed": { "@type": "Country", "name": "Ghana" },
-        "contactPoint": { "@type": "ContactPoint", "contactType": "customer support", "availableLanguage": "English" }
-      }
-    </script>
+    <!-- Organization + WebSite JSON-LD is injected per-page by <Seo> (homepage),
+         so it's not duplicated statically here. -->
   </head>
   <body>
     <!-- First-paint cover so the splash background is the very first thing

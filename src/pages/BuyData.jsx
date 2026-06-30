@@ -6,9 +6,11 @@ import Button from '../components/Button.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
+import Seo from '../components/Seo.jsx'
 import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
+import { SITE_URL } from '../config.js'
 import {
   NETWORKS,
   detectNetworkFamily,
@@ -32,6 +34,17 @@ const validNetwork = (id) => {
   if (NETWORKS.some((n) => n.id === id)) return id
   if (String(id || '').startsWith('airteltigo')) return 'airteltigo_ishare'
   return 'mtn'
+}
+
+// Service schema for the buy page (data top-up across all Ghana networks).
+const BUY_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  name: 'Buy Mobile Data Bundles in Ghana',
+  serviceType: 'Mobile data top-up',
+  provider: { '@type': 'Organization', name: 'easy', url: SITE_URL },
+  areaServed: { '@type': 'Country', name: 'Ghana' },
+  offers: { '@type': 'Offer', priceCurrency: 'GHS', availability: 'https://schema.org/InStock' },
 }
 
 function BundleSkeleton() {
@@ -163,6 +176,11 @@ export default function BuyData() {
 
   return (
     <Page className="wrap max-w-5xl pb-40 pt-6 md:pb-10 md:pt-10">
+      <Seo
+        title="Buy Data Bundles Ghana — MTN, Telecel, AirtelTigo | easy"
+        description="Buy MTN, Telecel & AirtelTigo data bundles in Ghana. Pick a bundle, enter the number, pay with MoMo — instant delivery, no login."
+        jsonLd={BUY_JSONLD}
+      />
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
