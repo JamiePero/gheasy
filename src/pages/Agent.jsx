@@ -157,6 +157,19 @@ export default function Agent() {
             </Link>
           </p>
 
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-brand/40 bg-brand/[0.08] p-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/15 text-brand">
+              <WalletIcon className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold">Get your GHS 60 back</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                Bring <span className="font-semibold text-fg">200 new customers</span> in your first{' '}
+                <span className="font-semibold text-fg">60 days</span> and we refund your joining fee in full. Miss it? No penalty — you keep everything you earned.
+              </p>
+            </div>
+          </div>
+
           <div className="mt-5 grid grid-cols-2 gap-3">
             {benefits.map((b) => (
               <div key={b.title} className="rounded-2xl border border-border bg-card p-4">

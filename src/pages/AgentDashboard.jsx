@@ -64,13 +64,17 @@ export default function AgentDashboard() {
   // Fresh dashboard data — the session is captured at login and goes stale, so
   // refetch earnings/orders on mount (Part 6).
   const [live, setLive] = useState(null)
+  const [refundOffer, setRefundOffer] = useState(null)
   useEffect(() => {
     if (!token) return
     let alive = true
     fetch(`${BASE}/gheasy/agent/dashboard`, { headers: { 'x-agent-token': token } })
       .then((r) => r.json())
       .then((data) => {
-        if (alive && data.success && data.agent) setLive(data.agent)
+        if (alive && data.success && data.agent) {
+          setLive(data.agent)
+          if (data.refundOffer) setRefundOffer(data.refundOffer)
+        }
       })
       .catch(() => {
         /* keep the stale session values on failure */
@@ -325,6 +329,39 @@ export default function AgentDashboard() {
           <p className="font-display text-2xl font-bold tnum">{view.totalOrders || 0}</p>
         </div>
       </div>
+
+      {/* "200 new customers in 60 days" joining-fee refund offer */}
+      {refundOffer && refundOffer.daysLeft != null && !refundOffer.expired && (
+        <div className="mt-4 rounded-3xl border border-brand/40 bg-brand/[0.07] p-5 shadow-card">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold">
+              {refundOffer.refunded ? '🎉 Joining fee refunded' : refundOffer.met ? '🎉 Refund earned — under review' : `Earn your ${formatCedis(refundOffer.refundAmount)} back`}
+            </p>
+            {!refundOffer.met && (
+              <span className="text-xs font-semibold text-muted">{refundOffer.daysLeft} day{refundOffer.daysLeft === 1 ? '' : 's'} left</span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {refundOffer.met
+              ? `You reached ${refundOffer.target} new customers — nice work!`
+              : `Bring ${refundOffer.target} new customers in your first 60 days and we refund your joining fee.`}
+          </p>
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-brand">{refundOffer.count} / {refundOffer.target} new customers</span>
+              {!refundOffer.met && <span className="text-muted">{Math.max(0, refundOffer.target - refundOffer.count)} to go</span>}
+            </div>
+            <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-surface">
+              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, Math.round((refundOffer.count / refundOffer.target) * 100))}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {refundOffer && refundOffer.expired && (
+        <div className="mt-4 rounded-2xl border border-border bg-surface p-4 text-xs text-muted">
+          Your 60-day refund offer has ended — you reached {refundOffer.count} of {refundOffer.target} new customers. No penalty; you keep everything you earned. Keep selling to grow your earnings!
+        </div>
+      )}
 
       {/* Store link */}
       <div className="mt-4 rounded-3xl border border-border bg-card p-5 shadow-card">

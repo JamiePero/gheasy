@@ -354,6 +354,83 @@ function Cashouts({ token, onUnauth }) {
   )
 }
 
+// ── 3b. JOINING-FEE REFUNDS ("200 customers in 60 days" offer) ──
+function Refunds({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/refund-requests', token, onUnauth)
+  const [refs, setRefs] = useState({})
+  const [busy, setBusy] = useState('')
+  const rows = data?.requests || []
+
+  const approve = async (id) => {
+    setBusy(id)
+    try {
+      await adminFetch(`/gheasy/admin/refund-requests/${id}/approve`, {
+        token, method: 'POST', onUnauth, body: { momoRef: refs[id] || '' },
+      })
+      await reload()
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Joining-fee refunds</h2>
+        <button onClick={reload} className="text-xs font-semibold text-brand">Refresh</button>
+      </div>
+      <p className="mt-0.5 text-xs text-muted">Agents who reached 200 new customers within 60 days — refund their GHS 60 joining fee.</p>
+      <Notice error={error} />
+      {loading ? (
+        <p className="mt-3 text-sm text-muted">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">No refund requests yet.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {rows.map((r) => (
+            <div key={r.id} className="rounded-2xl border border-border bg-surface p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold">{r.storeName || r.agentId || '—'}</p>
+                  <p className="text-xs text-muted">{r.agentId} · {r.phone || '—'}</p>
+                  <p className="mt-0.5 text-[11px] text-muted">{r.newCustomersCount} / {r.target} new customers · {fmtDate(r.timestamp)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold tnum text-brand">{cedis(r.amount)}</p>
+                  <Badge status={r.status} />
+                </div>
+              </div>
+              {r.status !== 'approved' ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    value={refs[r.id] || ''}
+                    onChange={(e) => setRefs((n) => ({ ...n, [r.id]: e.target.value }))}
+                    placeholder="MoMo reference / notes"
+                    className="flex-1 rounded-xl border border-border bg-card px-3 py-1.5 text-xs outline-none focus:border-brand"
+                  />
+                  <button
+                    onClick={() => approve(r.id)}
+                    disabled={busy === r.id}
+                    className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {busy === r.id ? '…' : 'Approve refund'}
+                  </button>
+                </div>
+              ) : (
+                (r.momoRef || r.notes) && (
+                  <p className="mt-1 text-[11px] text-muted">MoMo: {r.momoRef || r.notes} · by {r.approvedBy || 'admin'}</p>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 // ── 4. AGENTS ──
 function Agents({ token, onUnauth }) {
   const { data, error, loading, reload } = useAdminData('/gheasy/admin/agents', token, onUnauth)
@@ -1044,7 +1121,12 @@ export default function Admin() {
           <div className="mt-5">
             {tab === 'overview' && <Overview {...sectionProps} />}
             {tab === 'referral-cash' && <ReferralCash {...sectionProps} />}
-            {tab === 'cashouts' && <Cashouts {...sectionProps} />}
+            {tab === 'cashouts' && (
+              <div className="space-y-6">
+                <Cashouts {...sectionProps} />
+                <Refunds {...sectionProps} />
+              </div>
+            )}
             {tab === 'agents' && <Agents {...sectionProps} />}
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
