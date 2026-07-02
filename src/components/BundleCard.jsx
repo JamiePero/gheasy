@@ -7,12 +7,16 @@ import { CheckIcon } from './icons.jsx'
 // and volumeInMB is decimal (1GB = 1000MB). Resolve everything to a whole-number
 // GB (or MB below 1GB) so cards never show "7.81GB" or raw "1000MB".
 function gbLabel(b) {
-  const named = String(b.volume || b.name || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
-  if (named) return `${Math.round(parseFloat(named[1]))}GB`
+  // Prefer the leading number in the NAME (authoritative, e.g. "5GB (NON-EXPIRY)"),
+  // rounding any binary decimal the provider ships, so cards never show "4.88GB".
+  const fromName = String(b.name || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
+  if (fromName) return `${Math.round(parseFloat(fromName[1]))}GB`
+  const fromVolume = String(b.volume || '').match(/(\d+(?:\.\d+)?)\s*GB/i)
+  if (fromVolume) return `${Math.round(parseFloat(fromVolume[1]))}GB`
   if (b.gbAmount) return `${Math.round(b.gbAmount)}GB`
   const mb = Number(b.volumeInMB)
   if (Number.isFinite(mb) && mb > 0) return mb >= 1000 ? `${Math.round(mb / 1000)}GB` : `${Math.round(mb)}MB`
-  return String(b.volume || b.name || '')
+  return String(b.name || b.volume || '')
 }
 
 export default function BundleCard({ bundle, active, onSelect }) {
