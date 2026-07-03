@@ -175,6 +175,18 @@ export const GiftIcon = make(
   </>,
 )
 
+// PS-style dual-stick game controller — easy Games nav icon.
+export const GamepadIcon = make(
+  <>
+    <path d="M7.2 6h9.6c2.9 0 4.8 2.2 5.1 5.4.3 2.5.3 5-1.1 5.8-1.3.8-2.7-.4-3.5-1.6-.5-.8-1.1-1.3-2-1.3H8.7c-.9 0-1.5.5-2 1.3-.8 1.2-2.2 2.4-3.5 1.6-1.4-.8-1.4-3.3-1.1-5.8C2.4 8.2 4.3 6 7.2 6Z" />
+    <path d="M7.6 9.2v3.2M6 10.8h3.2" />
+    <circle cx="16" cy="9.6" r="0.55" fill="currentColor" stroke="none" />
+    <circle cx="18.2" cy="11.4" r="0.55" fill="currentColor" stroke="none" />
+    <circle cx="10.4" cy="13.6" r="1.15" />
+    <circle cx="13.6" cy="13.6" r="1.15" />
+  </>,
+)
+
 export const CopyIcon = make(
   <>
     <rect x="9" y="9" width="11" height="11" rx="2.5" />

@@ -177,6 +177,21 @@ function Overview({ token, onUnauth, goTo }) {
         </Card>
       )}
 
+      {o.wheel && (
+        <Card>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold">easy Games payout</h2>
+            <button onClick={() => goTo('games')} className="text-xs font-semibold text-brand">Manage →</button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat tone={o.wheel.paused ? 'warn' : 'brand'} label="Wheel status" value={o.wheel.paused ? 'Paused' : 'Live'} sub={`auto-pause valve at ${o.wheel.maxRatioPct}%`} />
+            <Stat tone={o.wheel.payoutRatioPct >= o.wheel.maxRatioPct ? 'warn' : undefined} label="Payout ratio" value={`${o.wheel.payoutRatioPct}%`} sub={`${cedis(o.wheel.estCostGHS)} est. cost / ${cedis(o.wheel.linkedRevenueGHS)} linked revenue`} />
+            <Stat label="Total spins" value={o.wheel.totalSpins} />
+            <Stat label="Data won" value={`${Math.round((o.wheel.totalWonMB / 1000) * 10) / 10}GB`} sub={`${Math.round((o.wheel.totalRedeemedMB / 1000) * 10) / 10}GB redeemed`} />
+          </div>
+        </Card>
+      )}
+
       <Card>
         <h2 className="text-lg font-bold">Orders</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -996,6 +1011,123 @@ function Networks({ token, onUnauth }) {
   )
 }
 
+// ── easy Games: wheel odds, pause + payout safety valve ──
+const WHEEL_PRIZES = [0, 100, 200, 300, 1000]
+const prizeLabel = (mb) => (mb === 0 ? 'Nothing (miss)' : mb === 1000 ? '1GB' : `${mb}MB`)
+
+function WheelAdmin({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/wheel', token, onUnauth)
+  const [odds, setOdds] = useState(null) // string map, seeded from server once
+  const [ratio, setRatio] = useState('')
+  const [busy, setBusy] = useState('')
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    if (data?.odds && odds === null) {
+      const o = {}
+      WHEEL_PRIZES.forEach((mb) => { o[mb] = String(data.odds[mb] ?? 0) })
+      setOdds(o)
+      setRatio(String(data.maxRatio ?? 0.1))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
+
+  const post = async (body, what) => {
+    setBusy(what)
+    setMsg('')
+    try {
+      await adminFetch('/gheasy/admin/wheel', { token, method: 'POST', onUnauth, body })
+      setMsg('Saved — live within ~30 seconds (config cache).')
+      await reload()
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  if (loading || odds === null) return <Card className="max-w-xl"><p className="text-sm text-muted">Loading wheel…</p></Card>
+  const s = data?.stats || {}
+  const total = WHEEL_PRIZES.reduce((sum, mb) => sum + (parseFloat(odds[mb]) || 0), 0)
+  const overLimit = s.payoutRatio >= (data?.maxRatio ?? 0.1) * 100
+
+  return (
+    <div className="space-y-6">
+      <Card className="max-w-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold">easy Games — wheel</h2>
+            <p className="mt-0.5 text-xs text-muted">Free spins earned per purchase. Odds + safety valve, no redeploy needed.</p>
+          </div>
+          <button
+            onClick={() => post({ paused: !data.paused }, 'pause')}
+            disabled={busy === 'pause'}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50 ${data.paused ? 'bg-brand text-white' : 'border border-amber-500/50 text-amber-500'}`}
+          >
+            {busy === 'pause' ? '…' : data.paused ? 'Resume wheel' : 'Pause wheel'}
+          </button>
+        </div>
+        {data.paused && (
+          <p className="mt-2 rounded-xl bg-amber-500/10 p-2.5 text-xs text-amber-500">
+            Wheel is paused{data.pausedReason === 'auto_payout_ratio' ? ' — AUTO (payout ratio hit the safety valve)' : data.pausedReason === 'admin' ? ' by admin' : ''}. Players keep their spins.
+          </p>
+        )}
+        <Notice error={error} />
+
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label="Total spins" value={s.totalSpins || 0} sub={`${s.creditedSpins || 0} earned`} />
+          <Stat tone={overLimit ? 'warn' : 'brand'} label="Payout ratio" value={`${s.payoutRatio || 0}%`} sub={`valve at ${Math.round((data.maxRatio || 0.1) * 100)}%`} />
+          <Stat label="Data won" value={`${Math.round(((s.totalWonMB || 0) / 1000) * 10) / 10}GB`} sub={`${Math.round(((s.totalRedeemedMB || 0) / 1000) * 10) / 10}GB redeemed`} />
+          <Stat label="Est. cost" value={cedis(s.estCostGHS)} sub={`vs ${cedis(s.linkedRevenueGHS)} linked revenue`} />
+        </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-semibold">Odds (weights — shown to players as %)</p>
+          <div className="mt-2 space-y-2">
+            {WHEEL_PRIZES.map((mb) => (
+              <div key={mb} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 text-sm">{prizeLabel(mb)}</span>
+                <input
+                  value={odds[mb]}
+                  onChange={(e) => setOdds((o) => ({ ...o, [mb]: e.target.value }))}
+                  type="number" step="0.01" min="0"
+                  className="w-24 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand"
+                />
+                <span className="text-xs text-muted tnum">
+                  {total > 0 ? `${Math.round(((parseFloat(odds[mb]) || 0) / total) * 1000) / 10}%` : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <span className="w-28 shrink-0 text-sm">Valve ratio</span>
+            <input
+              value={ratio}
+              onChange={(e) => setRatio(e.target.value)}
+              type="number" step="0.01" min="0.01" max="1"
+              className="w-24 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand"
+            />
+            <span className="text-xs text-muted">auto-pause past this share of linked revenue (0.10 = 10%)</span>
+          </div>
+          <Button
+            onClick={() => {
+              const clean = {}
+              WHEEL_PRIZES.forEach((mb) => { clean[mb] = parseFloat(odds[mb]) || 0 })
+              post({ odds: clean, maxRatio: parseFloat(ratio) || 0.1 }, 'save')
+            }}
+            loading={busy === 'save'}
+            variant="secondary"
+            className="mt-4 w-full"
+          >
+            Save odds &amp; valve
+          </Button>
+          {msg && <p className="mt-2 text-xs text-brand">{msg}</p>}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 // ── Admin OTP login (reuses /admin/send-otp + /admin/verify-otp) ──
 function AdminLogin({ onAuthed }) {
   const [step, setStep] = useState('email')
@@ -1073,6 +1205,7 @@ const TABS = [
   { id: 'orders', label: 'Orders' },
   { id: 'referrals', label: 'Referrals' },
   { id: 'ads', label: 'Ads / Media' },
+  { id: 'games', label: 'Games' },
   { id: 'maintenance', label: 'Maintenance' },
   { id: 'tools', label: 'Tools' },
 ]
@@ -1131,6 +1264,7 @@ export default function Admin() {
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
             {tab === 'ads' && <Ads {...sectionProps} />}
+            {tab === 'games' && <WheelAdmin {...sectionProps} />}
             {tab === 'maintenance' && (
               <div className="space-y-6">
                 <Maintenance {...sectionProps} />
