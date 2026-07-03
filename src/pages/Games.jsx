@@ -136,33 +136,36 @@ function Wheel({ rotation, spinning }) {
         <svg viewBox="0 0 280 280" className="h-full w-full">
           <defs>
             <linearGradient id="wglassSheen" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#ffffff" stopOpacity="0.28" />
-              <stop offset="0.42" stopColor="#ffffff" stopOpacity="0.08" />
-              <stop offset="0.58" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0" stopColor="#ffffff" stopOpacity="0.5" />
+              <stop offset="0.55" stopColor="#ffffff" stopOpacity="0.16" />
+              <stop offset="1" stopColor="#ffffff" stopOpacity="0.1" />
             </linearGradient>
             <radialGradient id="wglassEdge" gradientUnits="userSpaceOnUse" cx={CX} cy={CY} r={R + 2}>
-              <stop offset="0.8" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="0.96" stopColor="#ffffff" stopOpacity="0.09" />
-              <stop offset="1" stopColor="#ffffff" stopOpacity="0.18" />
+              <stop offset="0.78" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0.95" stopColor="#ffffff" stopOpacity="0.14" />
+              <stop offset="1" stopColor="#ffffff" stopOpacity="0.3" />
             </radialGradient>
             <clipPath id="wglassClip">
               <circle cx={CX} cy={CY} r={R} />
             </clipPath>
           </defs>
           <g clipPath="url(#wglassClip)">
-            {/* curved dome reflection across the top */}
-            <ellipse cx={CX} cy={CY - R * 0.62} rx={R * 1.12} ry={R * 0.78} fill="url(#wglassSheen)" />
-            {/* soft specular hotspot, upper-left (light source) */}
+            {/* dome gloss — gradient ends at 10% white so its curved lower edge
+                stays VISIBLE (the classic glass boundary line) */}
+            <ellipse cx={CX} cy={CY - R * 0.55} rx={R * 1.06} ry={R * 0.72} fill="url(#wglassSheen)" />
+            {/* specular hotspot, upper-left (light source) */}
             <ellipse
-              cx={CX - 52}
-              cy={CY - 66}
-              rx="40"
-              ry="19"
+              cx={CX - 50}
+              cy={CY - 64}
+              rx="46"
+              ry="21"
               fill="#ffffff"
-              opacity="0.10"
-              transform={`rotate(-28 ${CX - 52} ${CY - 66})`}
+              opacity="0.22"
+              transform={`rotate(-28 ${CX - 50} ${CY - 64})`}
             />
-            {/* faint refraction ring hugging the rim */}
+            {/* soft counter-gleam near the bottom rim (bounced light) */}
+            <ellipse cx={CX} cy={CY + R * 0.8} rx={R * 0.68} ry={R * 0.16} fill="#ffffff" opacity="0.08" />
+            {/* refraction ring hugging the rim */}
             <circle cx={CX} cy={CY} r={R} fill="url(#wglassEdge)" />
           </g>
         </svg>
