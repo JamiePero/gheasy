@@ -129,6 +129,45 @@ function Wheel({ rotation, spinning }) {
         </svg>
       </div>
 
+      {/* Stationary glass cover — glossy sheen over the spinning face. Sits
+          ABOVE the rotating wheel (so it doesn't spin, like a real glass dome)
+          and BELOW the hub button + pointer. */}
+      <div className="pointer-events-none absolute inset-0 z-[5] overflow-hidden rounded-full">
+        <svg viewBox="0 0 280 280" className="h-full w-full">
+          <defs>
+            <linearGradient id="wglassSheen" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffffff" stopOpacity="0.28" />
+              <stop offset="0.42" stopColor="#ffffff" stopOpacity="0.08" />
+              <stop offset="0.58" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <radialGradient id="wglassEdge" gradientUnits="userSpaceOnUse" cx={CX} cy={CY} r={R + 2}>
+              <stop offset="0.8" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0.96" stopColor="#ffffff" stopOpacity="0.09" />
+              <stop offset="1" stopColor="#ffffff" stopOpacity="0.18" />
+            </radialGradient>
+            <clipPath id="wglassClip">
+              <circle cx={CX} cy={CY} r={R} />
+            </clipPath>
+          </defs>
+          <g clipPath="url(#wglassClip)">
+            {/* curved dome reflection across the top */}
+            <ellipse cx={CX} cy={CY - R * 0.62} rx={R * 1.12} ry={R * 0.78} fill="url(#wglassSheen)" />
+            {/* soft specular hotspot, upper-left (light source) */}
+            <ellipse
+              cx={CX - 52}
+              cy={CY - 66}
+              rx="40"
+              ry="19"
+              fill="#ffffff"
+              opacity="0.10"
+              transform={`rotate(-28 ${CX - 52} ${CY - 66})`}
+            />
+            {/* faint refraction ring hugging the rim */}
+            <circle cx={CX} cy={CY} r={R} fill="url(#wglassEdge)" />
+          </g>
+        </svg>
+      </div>
+
       {/* Stationary hub — raised 3D button with the glowing "e" mark */}
       <div
         className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
