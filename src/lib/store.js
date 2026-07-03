@@ -140,8 +140,15 @@ const AGENT_SESSION_KEY = 'gheasy-agent-session'
 // Only treat it as a valid login when it has both a token and an agent profile.
 export function getAgentSession() {
   const session = read(AGENT_SESSION_KEY, null)
-  if (!session || typeof session !== 'object' || !session.token || !session.agent) return null
-  return session
+  if (session && typeof session === 'object' && session.token && session.agent) return session
+  // Cookie fallback: iOS PWA ↔ Safari contexts AND agents visiting gheasy.com
+  // (their localStorage session lives on the agent.gheasy.com origin).
+  const ck = readSessionCookie(AGENT_COOKIE)
+  if (ck && ck.token && ck.agent) {
+    write(AGENT_SESSION_KEY, ck)
+    return ck
+  }
+  return null
 }
 
 export function isAgentLoggedIn() {
@@ -151,6 +158,20 @@ export function isAgentLoggedIn() {
 export function saveAgentSession(session) {
   write(AGENT_SESSION_KEY, session)
   setAccountCookie(session?.agent || null)
+  setSessionCookie(
+    AGENT_COOKIE,
+    session
+      ? {
+          token: session.token,
+          agent: {
+            agentId: session.agent?.agentId || '',
+            storeName: session.agent?.storeName || '',
+            slug: session.agent?.slug || '',
+            phoneNumber: session.agent?.phoneNumber || '',
+          },
+        }
+      : null,
+  )
 }
 
 // Logout — clears the persisted agent session, the cached store, and the hint
@@ -159,17 +180,60 @@ export function clearAgentSession() {
   write(AGENT_SESSION_KEY, null)
   write(AGENT_KEY, null)
   setAccountCookie(null)
+  setSessionCookie(AGENT_COOKIE, null)
+}
+
+// --- Session cookies (iOS PWA ↔ Safari + cross-subdomain) -------------------
+// iOS gives the installed PWA a SEPARATE localStorage from Safari, so a login
+// done in one context is invisible in the other (and Private mode blocks
+// localStorage entirely). First-party cookies ARE shared across those contexts
+// — and across gheasy.com ↔ agent.gheasy.com — so each session is mirrored
+// into a cookie and read back whenever localStorage comes up empty, then
+// re-hydrated into localStorage where possible.
+const CUSTOMER_COOKIE = 'gheasy_csess'
+const AGENT_COOKIE = 'gheasy_asess'
+
+function setSessionCookie(name, value) {
+  if (typeof document === 'undefined') return
+  try {
+    if (!value) {
+      document.cookie = `${name}=; Path=/; Max-Age=0; Domain=.gheasy.com; Secure; SameSite=Lax`
+      document.cookie = `${name}=; Path=/; Max-Age=0`
+      return
+    }
+    const val = encodeURIComponent(JSON.stringify(value))
+    const age = 60 * 60 * 24 * 30 // 30 days — matches the server session TTL
+    document.cookie = `${name}=${val}; Path=/; Max-Age=${age}; Domain=.gheasy.com; Secure; SameSite=Lax`
+    document.cookie = `${name}=${val}; Path=/; Max-Age=${age}` // localhost / same-origin fallback
+  } catch {
+    /* cookies blocked */
+  }
+}
+
+function readSessionCookie(name) {
+  if (typeof document === 'undefined') return null
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+    return m ? JSON.parse(decodeURIComponent(m[1])) : null
+  } catch {
+    return null
+  }
 }
 
 // --- Customer session (free customer accounts) -----------------------------
-// Same shape as the agent session, separate key. Customers are gheasy.com-only
-// (no cross-subdomain), so no hint cookie is needed.
+// Written to BOTH localStorage and a session cookie on login.
 const CUSTOMER_SESSION_KEY = 'gheasy-customer-session'
 
 export function getCustomerSession() {
   const s = read(CUSTOMER_SESSION_KEY, null)
-  if (!s || typeof s !== 'object' || !s.token || !s.customer) return null
-  return s
+  if (s && typeof s === 'object' && s.token && s.customer) return s
+  // localStorage empty (fresh PWA context / private mode) → cookie fallback.
+  const ck = readSessionCookie(CUSTOMER_COOKIE)
+  if (ck && ck.token && ck.customer) {
+    write(CUSTOMER_SESSION_KEY, ck) // re-hydrate for next time (no-op if blocked)
+    return ck
+  }
+  return null
 }
 
 export function isCustomerLoggedIn() {
@@ -178,10 +242,17 @@ export function isCustomerLoggedIn() {
 
 export function saveCustomerSession(session) {
   write(CUSTOMER_SESSION_KEY, session)
+  setSessionCookie(
+    CUSTOMER_COOKIE,
+    session
+      ? { token: session.token, customer: { phoneNumber: session.customer?.phoneNumber || '', name: session.customer?.name || '' } }
+      : null,
+  )
 }
 
 export function clearCustomerSession() {
   write(CUSTOMER_SESSION_KEY, null)
+  setSessionCookie(CUSTOMER_COOKIE, null)
 }
 
 // --- Cross-subdomain account hint ------------------------------------------
