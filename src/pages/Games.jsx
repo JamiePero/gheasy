@@ -27,14 +27,25 @@ const SEG = 360 / SEGMENTS.length // 45°
 const CX = 140, CY = 140, R = 128
 
 // Radial gradients (lighter at the hub → darker at the rim = convex feel).
-// [id, center, mid, edge]
+// Dark royal jewel tones — metallic gold, crimson, deep teal, emeralds, royal
+// purple. [id, center, mid, edge]
 const GRADS = [
-  ['wgold', '#FFF3A6', '#FFD700', '#C9A400'],
-  ['wred', '#F87171', '#DC2626', '#991B1B'],
-  ['wteal', '#67E8F9', '#0891B2', '#155E75'],
-  ['wgreenL', '#86EFAC', '#4ADE80', '#16A34A'],
-  ['wgreenD', '#4ADE80', '#22C55E', '#166534'],
-  ['wpurple', '#C4B5FD', '#7C3AED', '#5B21B6'],
+  ['wgold', '#F7DC6F', '#D4AF37', '#8C6D1F'],
+  ['wred', '#EF4444', '#991B1B', '#5C0E0E'],
+  ['wteal', '#2CB1CF', '#0E7490', '#0F3D4A'],
+  ['wgreenL', '#34D399', '#15803D', '#0B3D20'],
+  ['wgreenD', '#22C55E', '#166534', '#07270F'],
+  ['wpurple', '#8B5CF6', '#5B21B6', '#3B0F73'],
+]
+
+// Embedded glitter — [angle°, radius, scale, opacity, gold?]. Rotates with the
+// wheel (sparkles live IN the material), twinkling on staggered delays.
+const SPARKLES = [
+  [14, 108, 1.0, 0.9, 1], [33, 70, 0.6, 0.7, 0], [58, 112, 0.8, 0.8, 0],
+  [79, 62, 0.55, 0.65, 1], [104, 100, 0.9, 0.85, 0], [126, 118, 0.6, 0.7, 0],
+  [149, 76, 0.7, 0.75, 1], [170, 106, 1.0, 0.9, 0], [199, 64, 0.55, 0.7, 0],
+  [224, 112, 0.75, 0.8, 1], [251, 80, 0.6, 0.7, 0], [274, 104, 0.9, 0.85, 0],
+  [299, 118, 0.65, 0.75, 1], [322, 72, 0.8, 0.8, 0], [341, 96, 0.55, 0.7, 0],
 ]
 
 // Angle in degrees clockwise from 12 o'clock → point on the rim.
@@ -51,7 +62,11 @@ function wedgePath(i) {
 function Wheel({ rotation, spinning }) {
   return (
     <div className="relative mx-auto h-[280px] w-[280px]">
-      <style>{`@keyframes wheelSonar { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(1.4); opacity: 0 } 100% { transform: scale(1.4); opacity: 0 } }`}</style>
+      <style>{`
+        @keyframes wheelSonar { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(1.4); opacity: 0 } 100% { transform: scale(1.4); opacity: 0 } }
+        @keyframes wtwinkle { 0%, 100% { opacity: .18 } 50% { opacity: 1 } }
+        @keyframes wheelShine { 0% { transform: translateX(-130%) } 55% { transform: translateX(130%) } 100% { transform: translateX(130%) } }
+      `}</style>
 
       {/* Pointer — fixed, wheel rotates beneath it */}
       <svg viewBox="0 0 40 30" className="absolute -top-1 left-1/2 z-20 h-[30px] w-10 -translate-x-1/2" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))' }}>
@@ -122,9 +137,24 @@ function Wheel({ rotation, spinning }) {
             )
           })}
 
-          {/* Beveled rim — dark ring + inner highlight + outer edge */}
+          {/* Embedded glitter — tiny 4-point stars twinkling in the material */}
+          {SPARKLES.map(([a, r, s, o, gold], i) => {
+            const [x, y] = polar(a, r)
+            return (
+              <path
+                key={`sp-${i}`}
+                d={`M ${x} ${y - 4 * s} L ${x + 1.3 * s} ${y - 1.3 * s} L ${x + 4 * s} ${y} L ${x + 1.3 * s} ${y + 1.3 * s} L ${x} ${y + 4 * s} L ${x - 1.3 * s} ${y + 1.3 * s} L ${x - 4 * s} ${y} L ${x - 1.3 * s} ${y - 1.3 * s} Z`}
+                fill={gold ? '#FFE9A0' : '#ffffff'}
+                opacity={o}
+                style={{ animation: `wtwinkle ${2.2 + (i % 3) * 0.7}s ease-in-out ${(i * 0.31).toFixed(2)}s infinite` }}
+              />
+            )
+          })}
+
+          {/* Beveled rim — dark ring, directional top light, outer edge */}
           <circle cx={CX} cy={CY} r={R + 6.5} fill="none" stroke="#08160d" strokeWidth="11" />
-          <circle cx={CX} cy={CY} r={R + 1.5} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1.6" />
+          <circle cx={CX} cy={CY} r={R + 1.5} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="1.6" />
+          <path d="M 27.85 75.25 A 129.5 129.5 0 0 1 252.15 75.25" fill="none" stroke="rgba(255,255,255,0.34)" strokeWidth="1.8" strokeLinecap="round" />
           <circle cx={CX} cy={CY} r={R + 11.4} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="1.8" />
         </svg>
       </div>
@@ -169,6 +199,15 @@ function Wheel({ rotation, spinning }) {
             <circle cx={CX} cy={CY} r={R} fill="url(#wglassEdge)" />
           </g>
         </svg>
+        {/* liquid shine — a light band sweeping across the glass */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.13) 47%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.13) 53%, transparent 60%)',
+            animation: 'wheelShine 4.6s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+          }}
+        />
       </div>
 
       {/* Stationary hub — raised 3D button with the glowing "e" mark */}
@@ -177,10 +216,13 @@ function Wheel({ rotation, spinning }) {
         style={{
           width: 76,
           height: 76,
-          background: 'radial-gradient(circle at 34% 28%, #1a4d2c 0%, #0d2f19 52%, #061a0d 100%)',
-          border: '2px solid #235c33',
+          // Liquid glass: translucent tint + backdrop blur of the wheel beneath.
+          background: 'linear-gradient(160deg, rgba(26,77,44,0.55) 0%, rgba(6,26,13,0.68) 100%)',
+          backdropFilter: 'blur(8px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(8px) saturate(1.6)',
+          border: '1.5px solid rgba(134,239,172,0.35)',
           boxShadow:
-            '0 7px 16px rgba(0,0,0,0.6), 0 0 22px rgba(34,197,94,0.3), inset 0 2px 4px rgba(255,255,255,0.22), inset 0 -6px 12px rgba(0,0,0,0.55)',
+            '0 8px 20px rgba(0,0,0,0.6), 0 0 26px rgba(34,197,94,0.38), inset 0 1.5px 3px rgba(255,255,255,0.4), inset 0 -8px 14px rgba(0,0,0,0.45)',
         }}
       >
         <img
@@ -188,8 +230,10 @@ function Wheel({ rotation, spinning }) {
           alt="easy"
           draggable="false"
           className="h-10 w-10 object-contain"
-          style={{ filter: 'drop-shadow(0 0 8px rgba(34,197,94,0.85))' }}
+          style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(34,197,94,0.7))' }}
         />
+        {/* crescent top highlight — light catching the glass edge */}
+        <span className="pointer-events-none absolute inset-[3px] rounded-full" style={{ boxShadow: 'inset 0 7px 10px -6px rgba(255,255,255,0.55)' }} />
         <span
           className="pointer-events-none absolute inset-0 rounded-full border border-brand/40"
           style={{ animation: 'wheelSonar 2.4s ease-out infinite' }}
