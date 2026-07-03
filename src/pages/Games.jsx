@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
@@ -9,17 +9,33 @@ import { AlertIcon, GiftIcon } from '../components/icons.jsx'
 
 const BASE = 'https://api.getflashx.com'
 
-// Wheel geometry — 5 segments × 72°, order MUST match the server's prize list.
-// Fixed physical colors (a wheel is a "real object": same in light & dark).
+// Wheel geometry — 8 segments × 45°. Outcomes repeat (2× MISS/100MB/200MB) so
+// the wheel feels fuller; the SERVER still returns just an outcome MB and the
+// client picks one matching segment to land on (visual only). No two adjacent
+// segments share a color. Fixed physical colors (same in light & dark).
 const SEGMENTS = [
-  { mb: 0, label: 'MISS', fill: '#26382c', ink: '#9fb8a8' },
-  { mb: 100, label: '100MB', fill: '#14532D', ink: '#ffffff' },
-  { mb: 200, label: '200MB', fill: '#166534', ink: '#ffffff' },
-  { mb: 300, label: '300MB', fill: '#15803D', ink: '#ffffff' },
-  { mb: 1000, label: '1GB', fill: '#22C55E', ink: '#052e16' },
+  { mb: 1000, label: '1GB', grad: 'wgold', glow: true }, // jackpot — gold
+  { mb: 0, label: 'MISS', grad: 'wred' },
+  { mb: 100, label: '100MB', grad: 'wteal' },
+  { mb: 200, label: '200MB', grad: 'wgreenL' },
+  { mb: 0, label: 'MISS', grad: 'wred' },
+  { mb: 100, label: '100MB', grad: 'wteal' },
+  { mb: 200, label: '200MB', grad: 'wgreenD' },
+  { mb: 300, label: '300MB', grad: 'wpurple' },
 ]
-const SEG = 360 / SEGMENTS.length
-const CX = 140, CY = 140, R = 132
+const SEG = 360 / SEGMENTS.length // 45°
+const CX = 140, CY = 140, R = 128
+
+// Radial gradients (lighter at the hub → darker at the rim = convex feel).
+// [id, center, mid, edge]
+const GRADS = [
+  ['wgold', '#FFF3A6', '#FFD700', '#C9A400'],
+  ['wred', '#F87171', '#DC2626', '#991B1B'],
+  ['wteal', '#67E8F9', '#0891B2', '#155E75'],
+  ['wgreenL', '#86EFAC', '#4ADE80', '#16A34A'],
+  ['wgreenD', '#4ADE80', '#22C55E', '#166534'],
+  ['wpurple', '#C4B5FD', '#7C3AED', '#5B21B6'],
+]
 
 // Angle in degrees clockwise from 12 o'clock → point on the rim.
 function polar(angle, radius = R) {
@@ -35,65 +51,142 @@ function wedgePath(i) {
 function Wheel({ rotation, spinning }) {
   return (
     <div className="relative mx-auto h-[280px] w-[280px]">
+      <style>{`@keyframes wheelSonar { 0% { transform: scale(1); opacity: .55 } 70% { transform: scale(1.4); opacity: 0 } 100% { transform: scale(1.4); opacity: 0 } }`}</style>
+
       {/* Pointer — fixed, wheel rotates beneath it */}
-      <svg viewBox="0 0 40 30" className="absolute -top-1 left-1/2 z-10 h-[30px] w-10 -translate-x-1/2">
+      <svg viewBox="0 0 40 30" className="absolute -top-1 left-1/2 z-20 h-[30px] w-10 -translate-x-1/2" style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))' }}>
         <path d="M20 28 L8 4 H32 Z" fill="#22C55E" stroke="#052e16" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M20 23 L12.5 7.5 H27.5 Z" fill="#4ADE80" opacity="0.55" />
       </svg>
+
+      {/* Rotating wheel */}
       <div
-        className="h-full w-full rounded-full shadow-card"
+        className="h-full w-full rounded-full"
         style={{
           transform: `rotate(${rotation}deg)`,
           transition: spinning ? 'transform 4.2s cubic-bezier(0.15, 0.85, 0.25, 1)' : 'none',
           willChange: 'transform',
+          boxShadow: '0 14px 34px rgba(0,0,0,0.5), 0 3px 10px rgba(0,0,0,0.4)',
         }}
       >
         <svg viewBox="0 0 280 280" className="h-full w-full">
-          <circle cx={CX} cy={CY} r={R + 5} fill="#0a1f12" />
-          {SEGMENTS.map((s, i) => (
-            <path key={s.mb} d={wedgePath(i)} fill={s.fill} stroke="#0a1f12" strokeWidth="2.5" />
-          ))}
+          <defs>
+            {GRADS.map(([id, c0, c1, c2]) => (
+              <radialGradient key={id} id={id} gradientUnits="userSpaceOnUse" cx={CX} cy={CY} r={R}>
+                <stop offset="0.14" stopColor={c0} />
+                <stop offset="0.55" stopColor={c1} />
+                <stop offset="1" stopColor={c2} />
+              </radialGradient>
+            ))}
+            <filter id="wglow" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#FFD700" floodOpacity="0.8" />
+            </filter>
+          </defs>
+
+          <circle cx={CX} cy={CY} r={R + 2} fill="#08160d" />
+
+          {/* Wedges — gold (jackpot) drawn last so its warm glow sits on top */}
+          {SEGMENTS.map((s, i) => (s.glow ? null : <path key={i} d={wedgePath(i)} fill={`url(#${s.grad})`} />))}
+          {SEGMENTS.map((s, i) => (s.glow ? <path key={i} d={wedgePath(i)} fill={`url(#${s.grad})`} filter="url(#wglow)" /> : null))}
+
+          {/* Crisp near-white dividers */}
+          {SEGMENTS.map((_, i) => {
+            const [x1, y1] = polar(i * SEG, 37)
+            const [x2, y2] = polar(i * SEG, R)
+            return <line key={`d-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(248,250,252,0.9)" strokeWidth="1.3" />
+          })}
+
+          {/* Labels — white, bold, dark outline so they read on every color */}
           {SEGMENTS.map((s, i) => {
             const mid = i * SEG + SEG / 2
-            const [x, y] = polar(mid, 90)
+            const flip = mid > 90 && mid < 270 // keep bottom-half text upright
+            const [x, y] = polar(mid, 87)
             return (
               <text
-                key={`t-${s.mb}`}
+                key={`t-${i}`}
                 x={x}
                 y={y}
-                fill={s.ink}
-                fontSize="17"
+                fill="#ffffff"
+                fontSize="13.5"
                 fontWeight="800"
                 textAnchor="middle"
                 dominantBaseline="middle"
-                transform={`rotate(${mid} ${x} ${y})`}
-                style={{ fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                stroke="rgba(0,0,0,0.45)"
+                strokeWidth="3"
+                paintOrder="stroke"
+                transform={`rotate(${flip ? mid + 180 : mid} ${x} ${y})`}
+                style={{ fontFamily: 'inherit', letterSpacing: '0.04em' }}
               >
                 {s.label}
               </text>
             )
           })}
-          <circle cx={CX} cy={CY} r="27" fill="#050f05" stroke="#22C55E" strokeWidth="2.5" />
-          <text x={CX} y={CY + 1} fill="#22C55E" fontSize="15" fontWeight="800" textAnchor="middle" dominantBaseline="middle">
-            easy
-          </text>
+
+          {/* Beveled rim — dark ring + inner highlight + outer edge */}
+          <circle cx={CX} cy={CY} r={R + 6.5} fill="none" stroke="#08160d" strokeWidth="11" />
+          <circle cx={CX} cy={CY} r={R + 1.5} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="1.6" />
+          <circle cx={CX} cy={CY} r={R + 11.4} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth="1.8" />
         </svg>
+      </div>
+
+      {/* Stationary hub — raised 3D button with the glowing "e" mark */}
+      <div
+        className="absolute left-1/2 top-1/2 z-10 grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
+        style={{
+          width: 76,
+          height: 76,
+          background: 'radial-gradient(circle at 34% 28%, #1a4d2c 0%, #0d2f19 52%, #061a0d 100%)',
+          border: '2px solid #235c33',
+          boxShadow:
+            '0 7px 16px rgba(0,0,0,0.6), 0 0 22px rgba(34,197,94,0.3), inset 0 2px 4px rgba(255,255,255,0.22), inset 0 -6px 12px rgba(0,0,0,0.55)',
+        }}
+      >
+        <img
+          src="/e-mark.png"
+          alt="easy"
+          draggable="false"
+          className="h-10 w-10 object-contain"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(34,197,94,0.85))' }}
+        />
+        <span
+          className="pointer-events-none absolute inset-0 rounded-full border border-brand/40"
+          style={{ animation: 'wheelSonar 2.4s ease-out infinite' }}
+        />
       </div>
     </div>
   )
 }
 
 export default function Games() {
-  // Either tier plays — customer session first, then agent.
-  const auth = useMemo(() => {
+  // Either tier plays — read BOTH session stores (customer first, then agent).
+  // Kept in STATE and re-checked on focus/visibility/storage, so logging in from
+  // another tab — or returning to a stale tab after logging in — unlocks the
+  // wheel without a manual reload.
+  const readAuth = () => {
     const c = getCustomerSession()
-    if (c?.token) return { headers: { 'x-customer-token': c.token } }
+    if (c?.token) return { headers: { 'x-customer-token': c.token }, type: 'customer' }
     const a = getAgentSession()
-    if (a?.token) return { headers: { 'x-agent-token': a.token } }
+    if (a?.token) return { headers: { 'x-agent-token': a.token }, type: 'agent' }
     return null
+  }
+  const [auth, setAuth] = useState(readAuth)
+  useEffect(() => {
+    const sync = () => setAuth((prev) => {
+      const next = readAuth()
+      return JSON.stringify(next) === JSON.stringify(prev) ? prev : next
+    })
+    window.addEventListener('focus', sync)
+    document.addEventListener('visibilitychange', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener('focus', sync)
+      document.removeEventListener('visibilitychange', sync)
+      window.removeEventListener('storage', sync)
+    }
   }, [])
 
   const [me, setMe] = useState(null)
-  const [loading, setLoading] = useState(!!auth)
+  const [loading, setLoading] = useState(() => !!readAuth())
   const [error, setError] = useState('')
   const [rot, setRot] = useState(0)
   const [spinning, setSpinning] = useState(false)
@@ -117,10 +210,16 @@ export default function Games() {
   }
 
   useEffect(() => {
-    if (auth) loadMe()
+    if (auth) {
+      setLoading(true)
+      loadMe()
+    } else {
+      setMe(null)
+      setLoading(false)
+    }
     return () => clearTimeout(revealTimer.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [auth])
 
   const spin = async () => {
     if (spinning || !me || me.spins <= 0 || me.paused) return
@@ -135,8 +234,11 @@ export default function Games() {
         if (d.paused) setMe((m) => (m ? { ...m, paused: true } : m))
         throw new Error(d.error || 'Could not spin.')
       }
-      const k = SEGMENTS.findIndex((s) => s.mb === d.outcomeMB)
-      const jitter = Math.floor(Math.random() * 48) - 24 // visual only — result is fixed
+      // Outcomes repeat on the wheel — pick a random matching segment to land on
+      // (purely visual; the server's outcome is already settled).
+      const matches = SEGMENTS.map((s, i) => (s.mb === d.outcomeMB ? i : -1)).filter((i) => i >= 0)
+      const k = matches[Math.floor(Math.random() * matches.length)]
+      const jitter = Math.floor(Math.random() * 32) - 16 // stays well inside the 45° segment
       const base = rot - (rot % 360)
       setSpinning(true)
       setRot(base + 5 * 360 + ((360 - (k * SEG + SEG / 2)) % 360) + jitter)
