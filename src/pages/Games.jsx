@@ -229,8 +229,12 @@ function Wheel({ rotation, spinning }) {
           src="/e-mark.png"
           alt="easy"
           draggable="false"
-          className="h-10 w-10 object-contain"
-          style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.55)) drop-shadow(0 0 14px rgba(34,197,94,0.7))' }}
+          className="h-11 w-11 object-contain"
+          // Match the brand reference: pure-white mark, white core glow + green halo.
+          style={{
+            filter:
+              'brightness(1.25) drop-shadow(0 0 4px rgba(255,255,255,0.8)) drop-shadow(0 0 12px rgba(134,239,172,0.75)) drop-shadow(0 0 22px rgba(34,197,94,0.45))',
+          }}
         />
         {/* crescent top highlight — light catching the glass edge */}
         <span className="pointer-events-none absolute inset-[3px] rounded-full" style={{ boxShadow: 'inset 0 7px 10px -6px rgba(255,255,255,0.55)' }} />
