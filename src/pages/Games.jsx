@@ -247,44 +247,6 @@ function Wheel({ rotation, spinning }) {
   )
 }
 
-// TEMPORARY iOS diagnostics — tiny line at the page bottom showing exactly what
-// this context can read: detected session type, which localStorage sessions
-// exist (C=customer A=agent), which session cookies exist, and a private-mode
-// probe. Remove once the iOS login issue is confirmed fixed.
-function SessionDebug({ auth }) {
-  let ls = '—'
-  let ck = '—'
-  let priv = ''
-  try {
-    const l = []
-    if (localStorage.getItem('gheasy-customer-session')) l.push('C')
-    if (localStorage.getItem('gheasy-agent-session')) l.push('A')
-    ls = l.join('') || '—'
-    try {
-      localStorage.setItem('__probe', '1')
-      localStorage.removeItem('__probe')
-    } catch {
-      priv = ' · private-mode?'
-    }
-  } catch {
-    ls = '✗'
-    priv = ' · storage-blocked'
-  }
-  try {
-    const c = []
-    if (document.cookie.includes('gheasy_csess=')) c.push('C')
-    if (document.cookie.includes('gheasy_asess=')) c.push('A')
-    ck = c.join('') || '—'
-  } catch {
-    ck = '✗'
-  }
-  return (
-    <p className="mt-6 text-center text-[10px] leading-relaxed text-muted/60">
-      debug · session: {auth ? auth.type : 'none'} · ls: {ls} · ck: {ck}{priv}
-    </p>
-  )
-}
-
 export default function Games() {
   // Either tier plays — read BOTH session stores (customer first, then agent).
   // Kept in STATE and re-checked on focus/visibility/storage, so logging in from
@@ -422,7 +384,6 @@ export default function Games() {
             <Button to="/register">Create free account</Button>
           </div>
         </div>
-        <SessionDebug auth={auth} />
       </Page>
     )
   }
@@ -542,7 +503,6 @@ export default function Games() {
           </div>
         </>
       )}
-      <SessionDebug auth={auth} />
     </Page>
   )
 }
