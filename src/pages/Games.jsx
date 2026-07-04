@@ -511,24 +511,6 @@ export default function Games() {
               <p className="mt-3 text-xs text-muted">Reach {target}MB to redeem a real 1GB bundle to your own number.</p>
             )}
           </div>
-
-          {/* Transparent odds — full disclosure before every spin */}
-          <div className="mt-4 rounded-3xl border border-border bg-card p-5 shadow-card">
-            <p className="text-sm font-bold">The odds — full disclosure</p>
-            <div className="mt-3 space-y-1.5">
-              {(me?.odds || []).map((o) => (
-                <div key={o.mb} className="flex items-center justify-between text-sm">
-                  <span className={o.mb === 0 ? 'text-muted' : 'font-semibold'}>
-                    {o.mb === 0 ? 'Nothing (miss)' : o.mb === 1000 ? '1GB' : `${o.mb}MB`}
-                  </span>
-                  <span className="tnum text-muted">{o.chance}%</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 border-t border-border pt-3 text-[11px] leading-relaxed text-muted">
-              Spins are free — earned with data purchases, never bought. One manual tap per spin, no auto-play. Wins accumulate; redeem 1GB to your own number.
-            </p>
-          </div>
         </>
       )}
     </Page>
