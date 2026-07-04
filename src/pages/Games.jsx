@@ -248,10 +248,10 @@ function Wheel({ rotation, spinning }) {
 }
 
 export default function Games() {
-  // Either tier plays — read BOTH session stores (customer first, then agent).
-  // Kept in STATE and re-checked on focus/visibility/storage, so logging in from
-  // another tab — or returning to a stale tab after logging in — unlocks the
-  // wheel without a manual reload.
+  // Detect a playable session from the SAME shared stores the rest of the app
+  // uses — customer first, then agent. Both getters read localStorage AND the
+  // shared .gheasy.com cookie, so a login done anywhere in the app (home, the
+  // account area, or the agent subdomain) is visible here too.
   const readAuth = () => {
     const c = getCustomerSession()
     if (c?.token) return { headers: { 'x-customer-token': c.token }, type: 'customer' }
@@ -259,12 +259,21 @@ export default function Games() {
     if (a?.token) return { headers: { 'x-agent-token': a.token }, type: 'agent' }
     return null
   }
-  const [auth, setAuth] = useState(readAuth)
+  // Start from the SSG-safe logged-out value so the first client render matches
+  // the prerendered HTML (no hydration mismatch). `checked` flips true once
+  // we've re-read on the client.
+  const [auth, setAuth] = useState(null)
+  const [checked, setChecked] = useState(false)
   useEffect(() => {
-    const sync = () => setAuth((prev) => {
-      const next = readAuth()
-      return JSON.stringify(next) === JSON.stringify(prev) ? prev : next
-    })
+    const sync = () =>
+      setAuth((prev) => {
+        const next = readAuth()
+        return JSON.stringify(next) === JSON.stringify(prev) ? prev : next
+      })
+    sync() // ← re-read on mount. THIS is the mobile fix: a PWA cold-launch fires
+    setChecked(true) //  no focus/visibility/storage event, so syncing only on
+    //                   those left the wheel stuck on the logged-out pitch even
+    //                   with a valid session sitting in storage/cookie.
     window.addEventListener('focus', sync)
     document.addEventListener('visibilitychange', sync)
     window.addEventListener('storage', sync)
@@ -276,7 +285,7 @@ export default function Games() {
   }, [])
 
   const [me, setMe] = useState(null)
-  const [loading, setLoading] = useState(() => !!readAuth())
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [rot, setRot] = useState(0)
   const [spinning, setSpinning] = useState(false)
@@ -363,7 +372,25 @@ export default function Games() {
     }
   }
 
-  // ── Logged out — pitch (no play without an account) ──
+  // ── Still checking the client-side session (first paint / SSG) ──
+  if (!checked) {
+    return (
+      <Page className="wrap-app pb-16 pt-6">
+        <Seo title="easy Games — Spin & Win Free Data | easy" description="Every data purchase on easy earns a free spin. Win up to 1GB — free to play, prizes go straight to your number." />
+        <h1 className="font-display text-2xl font-bold tracking-tight">easy Games</h1>
+        <p className="mt-1 text-sm text-muted">Spin the wheel, win free data. Every purchase earns a spin.</p>
+        <div className="pointer-events-none mt-6 opacity-90">
+          <Wheel rotation={18} spinning={false} />
+        </div>
+        <p className="mt-8 text-center text-sm text-muted">Loading…</p>
+      </Page>
+    )
+  }
+
+  // ── Logged out — pitch. No login flow lives on this page: we just point to
+  // the account area with a plain router link (nothing that can break routing).
+  // A customer/agent logged in anywhere app-wide sets `auth` above, so they
+  // never reach this branch. ──
   if (!auth) {
     return (
       <Page className="wrap-app pb-16 pt-6">
@@ -377,12 +404,13 @@ export default function Games() {
           <GiftIcon className="mx-auto h-7 w-7 text-brand" />
           <p className="mt-2 text-sm font-bold">Log in to play</p>
           <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
-            easy Games is for easy accounts — free to join. Every data purchase earns 1 free spin, and prizes go to your own number.
+            easy Games is for easy accounts — free to join. Log in to the app and every data purchase earns 1 free spin, with prizes going to your own number.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Button to="/login" variant="secondary">Log in</Button>
-            <Button to="/register">Create free account</Button>
-          </div>
+          <Button to="/register" className="mt-4 w-full">Create a free account</Button>
+          <p className="mt-3 text-xs text-muted">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-brand">Log in</Link>
+          </p>
         </div>
       </Page>
     )

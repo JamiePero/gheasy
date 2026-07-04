@@ -52,7 +52,7 @@ export default function MobileHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border/60 glass px-4 md:hidden">
+      <header className="sticky top-0 z-40 flex min-h-14 items-center justify-between border-b border-border/60 glass px-4 pt-safe md:hidden">
         <Logo wordmarkClass="h-6" />
         <div className="flex items-center gap-2">
           {agent ? (

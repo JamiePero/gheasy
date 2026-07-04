@@ -137,7 +137,13 @@ export default function App() {
   return (
     <ThemeProvider>
       <AnimatePresence>{showSplash && <SplashScreen />}</AnimatePresence>
-      <div className="relative flex min-h-dvh flex-col bg-bg">
+      <div
+        className="relative flex min-h-dvh flex-col bg-bg"
+        // iOS safe-area: keep content clear of the notch/rounded corners on the
+        // sides (top is handled by the sticky header's pt-safe, bottom by the
+        // nav's safe-bottom + main's padding).
+        style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
+      >
         <ScrollToTop />
         <RouteTracker />
         <DomainGuard />
@@ -149,7 +155,7 @@ export default function App() {
             <Navbar />
           </>
         )}
-        <main className="w-full flex-1 pb-[88px] md:pb-0">
+        <main className="w-full flex-1 pb-[calc(88px_+_env(safe-area-inset-bottom))] md:pb-0">
           <Outlet />
         </main>
         {agentHost ? (
