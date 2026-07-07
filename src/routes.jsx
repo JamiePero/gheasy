@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import App from './App.jsx'
 import Home from './pages/Home.jsx'
@@ -9,13 +10,16 @@ import MyRewards from './pages/MyRewards.jsx'
 import CustomerRegister from './pages/CustomerRegister.jsx'
 import Account from './pages/Account.jsx'
 import Games from './pages/Games.jsx'
-import Agent from './pages/Agent.jsx'
-import AgentLogin from './pages/AgentLogin.jsx'
-import AgentDashboard from './pages/AgentDashboard.jsx'
-import Store from './pages/Store.jsx'
+// Code-split (G1): the agent & admin surfaces are client-only, behind auth, and
+// off the customer hot path — lazy-load them so they don't weigh down the main
+// customer bundle. Suspense boundary lives around the <Outlet/> in App.jsx.
+const Agent = lazy(() => import('./pages/Agent.jsx'))
+const AgentLogin = lazy(() => import('./pages/AgentLogin.jsx'))
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard.jsx'))
+const Store = lazy(() => import('./pages/Store.jsx'))
+const Admin = lazy(() => import('./pages/Admin.jsx'))
 import More from './pages/More.jsx'
 import About from './pages/About.jsx'
-import Admin from './pages/Admin.jsx'
 import HowItWorks from './pages/HowItWorks.jsx'
 import Faq from './pages/Faq.jsx'
 import Agents from './pages/Agents.jsx'

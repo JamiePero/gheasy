@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { ThemeProvider } from './theme.jsx'
@@ -156,7 +156,9 @@ export default function App() {
           </>
         )}
         <main className="w-full flex-1 pb-[calc(88px_+_env(safe-area-inset-bottom))] md:pb-0">
-          <Outlet />
+          <Suspense fallback={<div className="grid min-h-[60vh] place-items-center text-sm text-muted">Loading…</div>}>
+            <Outlet />
+          </Suspense>
         </main>
         {agentHost ? (
           <AgentBottomNav />
