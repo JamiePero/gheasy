@@ -64,21 +64,24 @@ export default function AgentDashboard() {
   // Fresh dashboard data — the session is captured at login and goes stale, so
   // refetch earnings/orders on mount (Part 6).
   const [live, setLive] = useState(null)
-  const [refundOffer, setRefundOffer] = useState(null)
+  const [refundProgress, setRefundProgress] = useState(null)
   useEffect(() => {
     if (!token) return
     let alive = true
     fetch(`${BASE}/gheasy/agent/dashboard`, { headers: { 'x-agent-token': token } })
       .then((r) => r.json())
       .then((data) => {
-        if (alive && data.success && data.agent) {
-          setLive(data.agent)
-          if (data.refundOffer) setRefundOffer(data.refundOffer)
-        }
+        if (alive && data.success && data.agent) setLive(data.agent)
       })
       .catch(() => {
         /* keep the stale session values on failure */
       })
+    // ₵60 Refund Challenge progress — dedicated endpoint; it also idempotently
+    // files the refund request the moment the target is reached.
+    fetch(`${BASE}/gheasy/agent/refund-progress`, { headers: { 'x-agent-token': token } })
+      .then((r) => r.json())
+      .then((d) => { if (alive && d.success) setRefundProgress(d) })
+      .catch(() => {})
     return () => {
       alive = false
     }
@@ -330,36 +333,44 @@ export default function AgentDashboard() {
         </div>
       </div>
 
-      {/* "200 new customers in 60 days" joining-fee refund offer */}
-      {refundOffer && refundOffer.daysLeft != null && !refundOffer.expired && (
-        <div className="mt-4 rounded-3xl border border-brand/40 bg-brand/[0.07] p-5 shadow-card">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-bold">
-              {refundOffer.refunded ? '🎉 Joining fee refunded' : refundOffer.met ? '🎉 Refund earned — under review' : `Earn your ${formatCedis(refundOffer.refundAmount)} back`}
-            </p>
-            {!refundOffer.met && (
-              <span className="text-xs font-semibold text-muted">{refundOffer.daysLeft} day{refundOffer.daysLeft === 1 ? '' : 's'} left</span>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted">
-            {refundOffer.met
-              ? `You reached ${refundOffer.target} new customers — nice work!`
-              : `Bring ${refundOffer.target} new customers in your first 60 days and we refund your joining fee.`}
-          </p>
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-brand">{refundOffer.count} / {refundOffer.target} new customers</span>
-              {!refundOffer.met && <span className="text-muted">{Math.max(0, refundOffer.target - refundOffer.count)} to go</span>}
+      {/* ₵60 Refund Challenge — server-driven progress. Hidden entirely once the
+          60-day window closes without hitting the target (no failure message). */}
+      {refundProgress && refundProgress.eligible && (
+        <div className="mt-4 rounded-3xl border border-brand/40 bg-gradient-to-br from-brand/[0.12] to-brand/[0.03] p-5 shadow-card">
+          {refundProgress.targetHit ? (
+            <div className="flex items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/20 text-brand">
+                <GiftIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-extrabold">🎉 You did it!</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {refundProgress.refunded
+                    ? `Your ${'₵' + refundProgress.refundAmount} joining fee has been refunded to your MoMo. Thank you for growing easy!`
+                    : `Your refund request has been submitted — we’ll send ${'₵' + refundProgress.refundAmount} to your MoMo within 2 business days.`}
+                </p>
+              </div>
             </div>
-            <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-surface">
-              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, Math.round((refundOffer.count / refundOffer.target) * 100))}%` }} />
-            </div>
-          </div>
-        </div>
-      )}
-      {refundOffer && refundOffer.expired && (
-        <div className="mt-4 rounded-2xl border border-border bg-surface p-4 text-xs text-muted">
-          Your 60-day refund offer has ended — you reached {refundOffer.count} of {refundOffer.target} new customers. No penalty; you keep everything you earned. Keep selling to grow your earnings!
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-bold">🏆 {'₵' + refundProgress.refundAmount} Refund Challenge</p>
+                <span className="text-xs font-semibold text-muted">{refundProgress.daysRemaining} day{refundProgress.daysRemaining === 1 ? '' : 's'} left</span>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                Bring {refundProgress.target} new customers in your first 60 days and we refund your joining fee.
+              </p>
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="text-brand">{refundProgress.uniqueCustomers} / {refundProgress.target} new customers</span>
+                  <span className="text-muted">{Math.max(0, refundProgress.target - refundProgress.uniqueCustomers)} to go</span>
+                </div>
+                <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-surface">
+                  <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, Math.round((refundProgress.uniqueCustomers / refundProgress.target) * 100))}%` }} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

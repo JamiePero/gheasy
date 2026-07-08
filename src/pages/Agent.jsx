@@ -11,6 +11,7 @@ import {
   BoltIcon,
   BriefcaseIcon,
   ChartIcon,
+  GiftIcon,
   ShieldIcon,
   WalletIcon,
 } from '../components/icons.jsx'
@@ -248,6 +249,24 @@ export default function Agent() {
                 ) : (
                   <p className="mt-1.5 text-xs text-muted">You’ll use this to log in to your store.</p>
                 )}
+              </div>
+
+              {/* "200 customers = ₵60 back" incentive — shown before the payment step. */}
+              <div className="rounded-2xl border border-brand/40 bg-gradient-to-br from-brand/[0.14] to-brand/[0.04] p-4 shadow-card">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/20 text-brand">
+                    <GiftIcon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-extrabold text-fg">💚 Get your ₵60 back — free!</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                      Sign up today and bring 200 new customers to easy within your first 60 days. We’ll refund your full joining fee — no strings attached.
+                    </p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted">
+                      Every unique phone number that buys data through your store counts as a new customer.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between rounded-2xl border border-dashed border-brand/50 bg-brand/[0.05] p-4">
