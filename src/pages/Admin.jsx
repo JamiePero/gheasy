@@ -102,6 +102,14 @@ function Badge({ status }) {
         : 'bg-amber-500/15 text-amber-500'
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{titalize(status)}</span>
 }
+// "200 customers in 60 days" challenge → compact label + tone for the agents list.
+function challengeLabel(ch) {
+  if (!ch) return null
+  if (ch.status === 'paid') return { text: 'Refund paid', tone: 'bg-brand/15 text-brand' }
+  if (ch.status === 'hit') return { text: '✅ Hit target', tone: 'bg-brand/15 text-brand' }
+  if (ch.status === 'expired') return { text: `Expired (${ch.newCustomers}/${ch.target})`, tone: 'bg-surface text-muted' }
+  return { text: `${ch.newCustomers} / ${ch.target} · ${ch.daysLeft ?? 0}d left`, tone: 'bg-amber-500/15 text-amber-500' }
+}
 function Notice({ error }) {
   if (!error) return null
   return <p className="mt-2 text-xs text-red-500">{error}</p>
@@ -438,6 +446,7 @@ function Refunds({ token, onUnauth }) {
                   <p className="font-semibold">{r.storeName || r.agentId || '—'}</p>
                   <p className="text-xs text-muted">{r.agentId} · {r.phone || '—'}</p>
                   <p className="mt-0.5 text-[11px] text-muted">{r.newCustomersCount} / {r.target} new customers · {fmtDate(r.timestamp)}</p>
+                  <span className="mt-1 inline-block rounded-lg bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-500">🏆 200-customer challenge refund</span>
                 </div>
                 <div className="text-right">
                   <p className="font-bold tnum text-brand">{cedis(r.amount)}</p>
@@ -495,7 +504,7 @@ function Agents({ token, onUnauth }) {
     setDetail({ loading: true })
     try {
       const d = await adminFetch(`/gheasy/admin/agents/${id}`, { token, onUnauth })
-      setDetail({ agent: d.agent, orders: d.orders || [] })
+      setDetail({ agent: d.agent, orders: d.orders || [], uniqueCustomers: d.uniqueCustomers ?? 0, customers: d.customers || [] })
     } catch (e) {
       setDetail({ error: e.message })
     }
@@ -512,7 +521,9 @@ function Agents({ token, onUnauth }) {
         <p className="mt-3 text-sm text-muted">Loading…</p>
       ) : (
         <div className="mt-4 space-y-3">
-          {rows.map((a) => (
+          {rows.map((a) => {
+            const ch = challengeLabel(a.challenge)
+            return (
             <div key={a.id} className="rounded-2xl border border-border bg-surface p-3 text-sm">
               <div className="flex items-start justify-between gap-2">
                 <div>
@@ -521,6 +532,12 @@ function Agents({ token, onUnauth }) {
                   <p className="mt-0.5 text-[11px] text-muted">
                     {cedis(a.earningsBalance)} balance · {cedis(a.totalEarned)} earned · {a.totalOrders} orders · joined {fmtDate(a.joinedAt || a.createdAt)}
                   </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span className="rounded-lg bg-brand/10 px-2 py-0.5 text-[11px] font-semibold text-brand">
+                      {a.uniqueCustomers ?? 0} unique customer{a.uniqueCustomers === 1 ? '' : 's'}
+                    </span>
+                    {ch && <span className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold ${ch.tone}`}>{ch.text}</span>}
+                  </div>
                 </div>
                 <Badge status={a.status} />
               </div>
@@ -535,7 +552,8 @@ function Agents({ token, onUnauth }) {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -574,6 +592,28 @@ function Agents({ token, onUnauth }) {
                     ))}
                   </div>
                 )}
+                <h4 className="mt-4 text-sm font-bold">Customers <span className="font-normal text-muted">({detail.uniqueCustomers ?? 0} unique)</span></h4>
+                {(!detail.customers || detail.customers.length === 0) ? (
+                  <p className="mt-1 text-xs text-muted">No customers yet.</p>
+                ) : (
+                  <div className="mt-1 space-y-1.5">
+                    {detail.customers.map((c) => (
+                      <div key={c.phone} className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold tnum">{c.phone}</span>
+                          <span className="tnum text-brand">{cedis(c.totalSpent)}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-muted">
+                          {c.orderCount} order{c.orderCount === 1 ? '' : 's'} · first {fmtDate(c.firstPurchase)} · last {fmtDate(c.lastPurchase)}
+                        </p>
+                      </div>
+                    ))}
+                    {detail.uniqueCustomers > detail.customers.length && (
+                      <p className="text-[11px] text-muted">Showing the {detail.customers.length} most recent of {detail.uniqueCustomers}.</p>
+                    )}
+                  </div>
+                )}
+
                 <h4 className="mt-4 text-sm font-bold">Recent orders</h4>
                 {detail.orders.length === 0 ? (
                   <p className="mt-1 text-xs text-muted">No orders yet.</p>
