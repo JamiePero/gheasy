@@ -97,7 +97,7 @@ function Badge({ status }) {
   const tone =
     s === 'active' || s === 'paid' || s === 'approved' || s === 'success' || s === 'credited'
       ? 'bg-brand/15 text-brand'
-      : s === 'blocked' || s === 'failed'
+      : s === 'blocked' || s === 'failed' || s === 'rejected'
         ? 'bg-red-500/15 text-red-400'
         : 'bg-amber-500/15 text-amber-500'
   return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>{titalize(status)}</span>
@@ -246,6 +246,22 @@ function ReferralCash({ token, onUnauth }) {
     }
   }
 
+  const reject = async (id) => {
+    if (!confirm('Reject this request? Any points held for it are restored to the user.')) return
+    setBusy(id)
+    try {
+      const r = await adminFetch(`/gheasy/admin/payout-requests/${id}/reject`, {
+        token, method: 'POST', onUnauth, body: { notes: refs[id] || '' },
+      })
+      await reload()
+      if (r?.message) alert(r.message)
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
   return (
     <Card>
       <div className="flex items-center justify-between">
@@ -276,7 +292,15 @@ function ReferralCash({ token, onUnauth }) {
                   <Badge status={r.status} />
                 </div>
               </div>
-              {r.status !== 'approved' ? (
+              {r.status === 'approved' ? (
+                (r.momoRef || r.notes) && (
+                  <p className="mt-1 text-[11px] text-muted">MoMo: {r.momoRef || r.notes} · by {r.approvedBy || 'admin'}</p>
+                )
+              ) : r.status === 'rejected' ? (
+                <p className="mt-1 text-[11px] text-muted">
+                  Rejected{r.pointsRefunded ? ` · ${r.pointsRefunded} pts restored` : ''}{r.rejectedBy ? ` · by ${r.rejectedBy}` : ''}
+                </p>
+              ) : (
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     value={refs[r.id] || ''}
@@ -285,6 +309,13 @@ function ReferralCash({ token, onUnauth }) {
                     className="flex-1 rounded-xl border border-border bg-card px-3 py-1.5 text-xs outline-none focus:border-brand"
                   />
                   <button
+                    onClick={() => reject(r.id)}
+                    disabled={busy === r.id}
+                    className="rounded-xl border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-400 disabled:opacity-50"
+                  >
+                    {busy === r.id ? '…' : 'Reject'}
+                  </button>
+                  <button
                     onClick={() => approve(r.id)}
                     disabled={busy === r.id}
                     className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
@@ -292,10 +323,6 @@ function ReferralCash({ token, onUnauth }) {
                     {busy === r.id ? '…' : 'Approve'}
                   </button>
                 </div>
-              ) : (
-                (r.momoRef || r.notes) && (
-                  <p className="mt-1 text-[11px] text-muted">MoMo: {r.momoRef || r.notes} · by {r.approvedBy || 'admin'}</p>
-                )
               )}
             </div>
           ))}
