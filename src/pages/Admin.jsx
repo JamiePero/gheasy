@@ -1078,6 +1078,86 @@ function Networks({ token, onUnauth }) {
   )
 }
 
+// ── Data providers: switch RemaData ↔ DataHub per network (instant, no redeploy) ──
+const PROVIDER_NETWORKS = [
+  { key: 'mtn', label: 'MTN' },
+  { key: 'telecel', label: 'Telecel' },
+  { key: 'airteltigo', label: 'AirtelTigo' },
+]
+function DataProviders({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/provider-routing', token, onUnauth)
+  const [busy, setBusy] = useState(null)
+  const [note, setNote] = useState('')
+  const routing = data?.providerRouting || {}
+  const lastSwitched = data?.lastSwitched || {}
+
+  const setProvider = async (key, provider, label) => {
+    if ((routing[key] || 'remadata') === provider) return
+    const to = provider === 'datahub' ? 'DataHub' : 'RemaData'
+    if (!confirm(`Switch ${label} to ${to}? This affects all live purchases (gheasy.com + agent stores).`)) return
+    setBusy(key)
+    setNote('Switching…')
+    try {
+      await adminFetch('/gheasy/admin/provider-routing', { token, method: 'POST', onUnauth, body: { network: key, provider } })
+      await reload()
+      setNote(`✅ ${label} → ${to} — live now.`)
+    } catch (e) {
+      setNote(e.message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  if (loading) return <Card className="max-w-lg"><p className="text-sm text-muted">Loading providers…</p></Card>
+  return (
+    <Card className="max-w-lg">
+      <h2 className="text-lg font-bold">Data providers</h2>
+      <p className="mt-1 text-xs text-muted">
+        Switch buying between RemaData and DataHub per network — instantly, no redeploy. Customer prices never change; only the delivery provider does.
+      </p>
+      <Notice error={error} />
+      <div className="mt-4 space-y-3">
+        {PROVIDER_NETWORKS.map((n) => {
+          const active = routing[n.key] || 'remadata'
+          const busyRow = busy === n.key
+          const ts = lastSwitched[n.key]
+          return (
+            <div key={n.key} className="rounded-2xl border border-border bg-surface p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold">{n.label}</p>
+                <div className="flex gap-1.5">
+                  {['remadata', 'datahub'].map((p) => {
+                    const on = active === p
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setProvider(n.key, p, n.label)}
+                        disabled={busyRow || on}
+                        className={
+                          on
+                            ? 'rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white'
+                            : 'rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-fg disabled:opacity-50'
+                        }
+                      >
+                        {busyRow && !on ? '…' : p === 'datahub' ? 'DataHub' : 'RemaData'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted">
+                Active: <span className="font-semibold text-brand">{active === 'datahub' ? 'DataHub' : 'RemaData'}</span>
+                {ts ? ` · switched ${fmtDate(ts)}` : ''}
+              </p>
+            </div>
+          )
+        })}
+        {note && <p className="text-xs text-brand">{note}</p>}
+      </div>
+    </Card>
+  )
+}
+
 // ── easy Games: wheel odds, pause + payout safety valve ──
 const WHEEL_PRIZES = [0, 100, 200, 300, 1000]
 const prizeLabel = (mb) => (mb === 0 ? 'Nothing (miss)' : mb === 1000 ? '1GB' : `${mb}MB`)
@@ -1336,6 +1416,7 @@ export default function Admin() {
               <div className="space-y-6">
                 <Maintenance {...sectionProps} />
                 <Networks {...sectionProps} />
+                <DataProviders {...sectionProps} />
               </div>
             )}
             {tab === 'tools' && <Tools {...sectionProps} />}
