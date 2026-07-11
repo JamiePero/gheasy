@@ -1292,7 +1292,7 @@ function AdminLogin({ onAuthed }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!data.success) throw new Error(data.error || 'Could not send code.')
       setStep('otp')
     } catch (err) {
@@ -1310,7 +1310,7 @@ function AdminLogin({ onAuthed }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otp.trim() }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!data.success) throw new Error(data.error || 'Verification failed.')
       const token = data.token || data.sessionToken
       try { localStorage.setItem(TOKEN_KEY, token) } catch { /* storage blocked */ }

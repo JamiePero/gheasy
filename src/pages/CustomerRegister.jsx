@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { registerCustomer } from '../lib/api.js'
+import { friendlyError } from '../lib/errors.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { saveCustomerSession } from '../lib/store.js'
 import { track } from '../lib/analytics.js'
@@ -40,7 +41,7 @@ export default function CustomerRegister() {
       track('customer_register', {})
       navigate('/account')
     } catch (err) {
-      setError(err.message || 'Could not create your account. Please try again.')
+      setError(friendlyError(err, 'Could not create your account. Please try again.'))
       setLoading(false)
     }
   }

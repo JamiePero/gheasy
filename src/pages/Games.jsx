@@ -4,6 +4,7 @@ import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import Seo from '../components/Seo.jsx'
 import { getAgentSession, getCustomerSession } from '../lib/store.js'
+import { friendlyError } from '../lib/errors.js'
 import { normalizePhone, prettyPhone } from '../lib/format.js'
 import { AlertIcon, GiftIcon } from '../components/icons.jsx'
 
@@ -298,11 +299,11 @@ export default function Games() {
   const loadMe = async () => {
     try {
       const res = await fetch(`${BASE}/gheasy/wheel/me`, { headers: auth.headers })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not load your spins.')
       setMe(d)
     } catch (e) {
-      setError(e.message)
+      setError(friendlyError(e))
     } finally {
       setLoading(false)
     }
@@ -328,7 +329,7 @@ export default function Games() {
     try {
       // Server decides the outcome BEFORE any animation — the wheel just plays it.
       const res = await fetch(`${BASE}/gheasy/wheel/spin`, { method: 'POST', headers: auth.headers })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (!d.success) {
         if (d.paused) setMe((m) => (m ? { ...m, paused: true } : m))
         throw new Error(d.error || 'Could not spin.')
@@ -348,7 +349,7 @@ export default function Games() {
       }, 4300)
     } catch (e) {
       setSpinning(false)
-      setError(e.message)
+      setError(friendlyError(e))
     }
   }
 
@@ -361,12 +362,12 @@ export default function Games() {
         headers: { 'Content-Type': 'application/json', ...auth.headers },
         body: JSON.stringify({ network }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not redeem.')
       setRedeemMsg(d.message || 'Your 1GB is on its way!')
       await loadMe()
     } catch (e) {
-      setRedeemMsg(e.message)
+      setRedeemMsg(friendlyError(e))
     } finally {
       setRedeeming(false)
     }

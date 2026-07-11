@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { registerAgent, sendAgentOtp } from '../lib/api.js'
+import { friendlyError } from '../lib/errors.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { track } from '../lib/analytics.js'
 import {
@@ -70,7 +71,7 @@ export default function Agent() {
       track('agent_otp_sent', {})
       setStep('otp')
     } catch (err) {
-      setError(err.message || 'Could not send the code. Please try again.')
+      setError(friendlyError(err, 'Could not send the code. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -100,7 +101,7 @@ export default function Agent() {
         // Phone already has an account — send them to login instead.
         setExisting(true)
       } else {
-        setError(err.message || 'Registration failed. Please try again.')
+        setError(friendlyError(err, 'Registration failed. Please try again.'))
       }
       setLoading(false)
     }
@@ -251,20 +252,20 @@ export default function Agent() {
                 )}
               </div>
 
-              {/* "200 customers = ₵60 back" incentive — shown before the payment step. */}
+              {/* Agent perks — shown before the payment step so the fee feels worth it. */}
               <div className="rounded-2xl border border-brand/40 bg-gradient-to-br from-brand/[0.14] to-brand/[0.04] p-4 shadow-card">
                 <div className="flex items-start gap-3">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand/20 text-brand">
                     <GiftIcon className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-extrabold text-fg">💚 Get your ₵60 back — free!</p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted">
-                      Sign up today and bring 200 new customers to easy within your first 60 days. We’ll refund your full joining fee — no strings attached.
-                    </p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted">
-                      Every unique phone number that buys data through your store counts as a new customer.
-                    </p>
+                    <p className="text-sm font-extrabold text-fg">💚 Why agents love easy</p>
+                    <ul className="mt-1.5 space-y-1.5 text-xs leading-relaxed text-muted">
+                      <li className="flex gap-1.5"><span className="shrink-0 font-bold text-brand">✓</span> Free withdrawals — keep 100% of what you earn</li>
+                      <li className="flex gap-1.5"><span className="shrink-0 font-bold text-brand">✓</span> Get your ₵60 joining fee back — bring 200 new customers in your first 60 days</li>
+                      <li className="flex gap-1.5"><span className="shrink-0 font-bold text-brand">✓</span> Set your own prices above easy’s base rate — your markup, your margin</li>
+                      <li className="flex gap-1.5"><span className="shrink-0 font-bold text-brand">✓</span> Your own store link to share anywhere</li>
+                    </ul>
                   </div>
                 </div>
               </div>

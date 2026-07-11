@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
+import { friendlyError } from '../lib/errors.js'
 import Button from '../components/Button.jsx'
 import Seo from '../components/Seo.jsx'
 import { fetchCustomerMe, fetchCustomerOrders, upgradeToAgent } from '../lib/api.js'
@@ -75,7 +76,7 @@ export default function Account() {
       setMe(data)
     } catch (e) {
       if (e.status === 401) { clearCustomerSession(); navigate('/login', { replace: true }); return }
-      setError(e.message)
+      setError(friendlyError(e))
     } finally {
       setLoading(false)
     }
@@ -121,11 +122,11 @@ export default function Account() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalizePhone(phone), network, gb: 1 }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not redeem.')
       setRedeemMsg(d.message || 'Your data is on the way.')
       await load()
-    } catch (e) { setRedeemMsg(e.message) } finally { setRedeeming('') }
+    } catch (e) { setRedeemMsg(friendlyError(e)) } finally { setRedeeming('') }
   }
   const redeemCash = async () => {
     setRedeeming('cash'); setRedeemMsg('')
@@ -134,11 +135,11 @@ export default function Account() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalizePhone(phone), points: cashPoints }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not redeem.')
       setRedeemMsg(d.message || 'Your cash request was submitted.')
       await load()
-    } catch (e) { setRedeemMsg(e.message) } finally { setRedeeming('') }
+    } catch (e) { setRedeemMsg(friendlyError(e)) } finally { setRedeeming('') }
   }
 
   const submitUpgrade = async () => {
@@ -156,7 +157,7 @@ export default function Account() {
       if (!data.paymentUrl) throw new Error('No payment link was returned. Please try again.')
       window.location.href = data.paymentUrl
     } catch (e) {
-      setUpError(e.message || 'Could not start the upgrade. Please try again.')
+      setUpError(friendlyError(e, 'Could not start the upgrade. Please try again.'))
       setUpLoading(false)
     }
   }

@@ -84,15 +84,39 @@
   </head>
   <body>
     <!-- First-paint cover so the splash background is the very first thing
-         visible (no blank flash). The app removes it once the splash is ready. -->
-    <div id="boot-splash" style="position:fixed;inset:0;background-color:#050f05;z-index:9998"></div>
+         visible (no blank flash). The app removes it once the splash is ready.
+         Contains a hidden fallback that appears if the JS bundle never mounts —
+         users must never sit on a blank screen. -->
+    <div id="boot-splash" style="position:fixed;inset:0;background-color:#050f05;z-index:9998">
+      <div id="boot-fallback" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif">
+        <p style="margin:0;color:#ffffff;font-size:17px;font-weight:600">Loading easy…</p>
+        <p style="margin:0;color:#9fb8a8;font-size:13px">Taking longer than usual.</p>
+        <button onclick="window.location.reload()" style="margin-top:6px;height:46px;padding:0 36px;border:0;border-radius:16px;background:#22C55E;color:#ffffff;font-size:15px;font-weight:600;cursor:pointer">Refresh</button>
+      </div>
+    </div>
+    <noscript>
+      <div style="position:fixed;inset:0;z-index:9999;background:#050f05;color:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;font-family:system-ui,sans-serif;padding:0 24px">
+        <p style="margin:0;font-size:17px;font-weight:600">easy needs JavaScript</p>
+        <p style="margin:0;color:#9fb8a8;font-size:13px">Please enable JavaScript in your browser and refresh this page.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Safety net: if the app never mounts, drop the boot cover after 10s.
+      // Boot safety net:
+      //  • 5s — if the app hasn't mounted (root still empty), reveal the
+      //    branded "Loading easy… [Refresh]" fallback inside the boot cover.
+      //  • 10s — remove the boot cover ONLY when the app actually mounted;
+      //    if it never mounted, the fallback stays (never a blank screen).
+      setTimeout(function () {
+        var r = document.getElementById('root');
+        var f = document.getElementById('boot-fallback');
+        if (f && (!r || !r.firstChild)) f.style.display = 'flex';
+      }, 5000);
       setTimeout(function () {
         var b = document.getElementById('boot-splash');
-        if (b) b.remove();
+        var r = document.getElementById('root');
+        if (b && r && r.firstChild) b.remove();
       }, 10000);
     </script>
   </body>

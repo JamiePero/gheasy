@@ -6,6 +6,7 @@ import Button from '../components/Button.jsx'
 import Spinner from '../components/Spinner.jsx'
 import { NetworkBadge } from '../components/NetworkPicker.jsx'
 import { getOrder } from '../lib/api.js'
+import { friendlyError } from '../lib/errors.js'
 import { clearStoredRefCode, saveOrder, updateOrder } from '../lib/store.js'
 import { formatCedis, getNetwork, prettyPhone } from '../lib/format.js'
 import {
@@ -121,7 +122,7 @@ export default function OrderStatus() {
           if (!existed) saveOrder(entry)
         }
       } catch (e) {
-        setError(e.message || 'Something went wrong. Please try again.')
+        setError(friendlyError(e))
         setResult(null)
       } finally {
         setChecking(false)

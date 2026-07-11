@@ -106,7 +106,7 @@ export async function initiatePurchase({ recipientPhone, networkType, volumeInMB
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ recipientPhone, networkType, volumeInMB, gbAmount, bundleName, referralCode }),
   })
-  const data = await res.json()
+  const data = await res.json().catch(() => ({}))
   if (!data.success) throw new Error(data.error || 'Failed to initiate purchase')
   return data
 }

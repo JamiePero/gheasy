@@ -2,8 +2,8 @@ import { motion } from 'framer-motion'
 import { formatCedis, getNetwork } from '../lib/format.js'
 import { CheckIcon } from './icons.jsx'
 
-// Clean GB label. Providers are inconsistent: RemaData ships `volume` as a binary
-// figure ("7.81GB" = 8000/1024), DataHub ships gbAmount or a "Telecel 5GB" name,
+// Clean GB label. Upstream data is inconsistent: `volume` can arrive as a binary
+// figure ("7.81GB" = 8000/1024), sometimes only gbAmount or a "Telecel 5GB" name,
 // and volumeInMB is decimal (1GB = 1000MB). Resolve everything to a whole-number
 // GB (or MB below 1GB) so cards never show "7.81GB" or raw "1000MB".
 function gbLabel(b) {

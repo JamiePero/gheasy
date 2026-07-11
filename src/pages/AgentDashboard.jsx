@@ -4,14 +4,15 @@ import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import Seo from '../components/Seo.jsx'
 import { clearAgentSession, getAgentSession, saveAgentSession } from '../lib/store.js'
+import { friendlyError } from '../lib/errors.js'
 import { formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { CheckIcon, CopyIcon, GiftIcon, ReceiptIcon, WalletIcon } from '../components/icons.jsx'
 
 const BASE = 'https://api.getflashx.com'
 
 // Build the customPrices key for a bundle — MUST match the backend store endpoint.
-// MTN/RemaData is always `mtn_<volumeInMB>` (never the provider's raw network
-// string); DataHub is `<network>_<gbAmount>`.
+// MTN keys by volumeInMB (`mtn_<volumeInMB>`); other networks key by GB
+// (`<network>_<gbAmount>`).
 function bundleKeyOf(b) {
   return b.gbAmount != null ? `${b.network}_${b.gbAmount}` : `mtn_${b.volumeInMB}`
 }
@@ -40,7 +41,7 @@ export default function AgentDashboard() {
   const [customPrices, setCustomPrices] = useState({})
   const [savingKey, setSavingKey] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(null)
-  const [fees, setFees] = useState({}) // bundleKey -> { paystackFee, smsFee, serviceFee, agentEarnings }
+  const [fees, setFees] = useState({}) // bundleKey -> live calculate-fees breakdown
   const [feesLoading, setFeesLoading] = useState({})
   const feeTimers = useRef({})
 
@@ -65,6 +66,11 @@ export default function AgentDashboard() {
   // refetch earnings/orders on mount (Part 6).
   const [live, setLive] = useState(null)
   const [refundProgress, setRefundProgress] = useState(null)
+  // Price-floor migration notice — dismissible, shows once (localStorage), and
+  // the server flag also clears on their next price save.
+  const [priceNoticeDismissed, setPriceNoticeDismissed] = useState(() => {
+    try { return localStorage.getItem('easy-price-floor-notice-dismissed') === '1' } catch { return false }
+  })
   useEffect(() => {
     if (!token) return
     let alive = true
@@ -174,7 +180,7 @@ export default function AgentDashboard() {
     const raw = customPrices[bundleKey]
     const price = parseFloat(raw)
     if (!raw || isNaN(price) || price < basePrice) {
-      alert(`Price must be at least ${formatCedis(basePrice)} (your cost price).`)
+      alert(`${formatCedis(basePrice)} minimum — can't sell below easy's price`)
       return
     }
     setSavingKey(bundleKey)
@@ -191,7 +197,7 @@ export default function AgentDashboard() {
       loadBundles() // refresh so the bundle list reflects the saved price
     } catch (e) {
       console.error('[easy] savePrice error:', e)
-      alert(`Couldn’t save price: ${e.message || 'please try again.'}`)
+      alert(`Couldn’t save price: ${friendlyError(e, 'please try again.')}`)
     } finally {
       setSavingKey(null)
     }
@@ -219,13 +225,13 @@ export default function AgentDashboard() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customerPrice: price,
+            agentPrice: price,
             networkType: bundle.network,
             volumeInMB: bundle.volumeInMB,
             gbAmount: bundle.gbAmount,
           }),
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         if (data.success) {
           setFees((f) => ({ ...f, [key]: data }))
         } else {
@@ -257,13 +263,13 @@ export default function AgentDashboard() {
         headers: { 'Content-Type': 'application/json', 'x-agent-token': token },
         body: JSON.stringify({ amount, momoNumber, momoNetwork }),
       })
-      const data = await res.json()
-      if (!data.success) throw new Error(data.error)
+      const data = await res.json().catch(() => ({}))
+      if (!data.success) throw new Error(data.error || 'Cashout failed. Try again.')
       setCashoutSuccess(`GHS ${data.netAmount?.toFixed(2)} will be sent to ${momoNumber} next business day.`)
       setCashoutAmount('')
       setMomoNumber('')
     } catch (e) {
-      setCashoutError(e.message || 'Cashout failed. Try again.')
+      setCashoutError(friendlyError(e, 'Cashout failed. Try again.'))
     } finally {
       setCashoutLoading(false)
     }
@@ -291,7 +297,7 @@ export default function AgentDashboard() {
       setSupportNumber(clean)
       setSupportMsg({ ok: true, text: 'Saved. Your store support button now reaches this number.' })
     } catch (e) {
-      setSupportMsg({ ok: false, text: e.message || 'Couldn’t save. Please try again.' })
+      setSupportMsg({ ok: false, text: friendlyError(e, 'Couldn’t save. Please try again.') })
     } finally {
       setSupportSaving(false)
     }
@@ -371,6 +377,23 @@ export default function AgentDashboard() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Price-floor migration notice — one line, dismissible */}
+      {live?.priceFloorNotice && !priceNoticeDismissed && (
+        <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-3.5 text-xs text-muted">
+          <span>One or more of your prices was updated to match easy’s minimum price. You can adjust them anytime.</span>
+          <button
+            onClick={() => {
+              setPriceNoticeDismissed(true)
+              try { localStorage.setItem('easy-price-floor-notice-dismissed', '1') } catch { /* ignore */ }
+            }}
+            aria-label="Dismiss"
+            className="text-base leading-none"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -481,15 +504,12 @@ export default function AgentDashboard() {
               </select>
             </div>
             {Number.isFinite(parseFloat(cashoutAmount)) && parseFloat(cashoutAmount) > 0 && (
-              <div className="space-y-1 rounded-2xl bg-surface p-3 text-xs">
-                <div className="flex justify-between text-muted">
-                  <span>10% platform commission</span>
-                  <span className="tnum">{formatCedis(parseFloat(cashoutAmount) * 0.1)}</span>
-                </div>
-                <div className="flex justify-between border-t border-border pt-1 font-semibold">
+              <div className="rounded-2xl bg-surface p-3 text-xs">
+                <div className="flex justify-between font-semibold">
                   <span>You receive</span>
-                  <span className="tnum text-brand">{formatCedis(parseFloat(cashoutAmount) * 0.9)}</span>
+                  <span className="tnum text-brand">{formatCedis(parseFloat(cashoutAmount))}</span>
                 </div>
+                <p className="mt-0.5 text-[11px] text-muted">Full amount — no withdrawal fee.</p>
               </div>
             )}
             {cashoutError && <p className="text-xs text-red-500">{cashoutError}</p>}
@@ -537,9 +557,12 @@ export default function AgentDashboard() {
                     const fb = fees[key]
                     return (
                       <div key={key}>
+                        <p className="mb-0.5 text-[10px] text-muted">
+                          Suggested: {formatCedis(Math.round((b.basePrice ?? b.sellPrice) * 1.1 * 10) / 10)}
+                        </p>
                         <div className="flex items-center gap-2">
                           <span className="w-16 shrink-0 text-xs text-muted">{b.name?.match(/\d+GB/i)?.[0] || b.name}</span>
-                          <span className="text-xs text-muted">Base: {formatCedis(b.basePrice || b.sellPrice)}</span>
+                          <span className="text-xs text-muted">Min: {formatCedis(b.basePrice || b.sellPrice)}</span>
                           <input
                             type="number"
                             step="0.01"
@@ -556,16 +579,24 @@ export default function AgentDashboard() {
                             {savingKey === key ? '...' : saveSuccess === key ? '✓' : 'Save'}
                           </button>
                         </div>
-                        {feesLoading[key] && <p className="mt-1 text-[11px] text-muted">Calculating fees…</p>}
-                        {fb && (
+                        {feesLoading[key] && <p className="mt-1 text-[11px] text-muted">Calculating…</p>}
+                        {fb && fb.belowFloor && (
+                          <p className="mt-1 text-[11px] font-semibold text-red-500">
+                            {formatCedis(fb.floorPrice)} minimum — can’t sell below easy’s price
+                          </p>
+                        )}
+                        {fb && !fb.belowFloor && (
                           <div className="mt-1.5 space-y-0.5 rounded-xl bg-surface/70 p-2.5 text-[11px]">
-                            <div className="flex justify-between text-muted"><span>SMS fee</span><span className="tnum">{formatCedis(fb.smsFee)}</span></div>
-                            <div className="flex justify-between text-muted"><span>Paystack fee</span><span className="tnum">{formatCedis(fb.paystackFee)}</span></div>
-                            <div className="flex justify-between text-muted"><span>Service fee</span><span className="tnum">{formatCedis(fb.serviceFee)}</span></div>
-                            <div className="flex justify-between border-t border-border pt-0.5 font-semibold">
-                              <span>Your earnings</span>
-                              <span className={`tnum ${fb.agentEarnings >= 0 ? 'text-brand' : 'text-red-500'}`}>{formatCedis(fb.agentEarnings)}</span>
-                            </div>
+                            <div className="flex justify-between"><span>Your selling price</span><span className="tnum">{formatCedis(fb.agentPrice)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Platform fee (5.5%)</span><span className="tnum">+{formatCedis(fb.platformFee)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Transaction fee</span><span className="tnum">+{formatCedis(fb.transactionFee)}</span></div>
+                            <div className="flex justify-between border-t border-border pt-0.5 font-semibold"><span>Customer pays</span><span className="tnum">{formatCedis(fb.customerPays)}</span></div>
+                            <div className="mt-1 flex justify-between text-muted"><span>easy base price</span><span className="tnum">−{formatCedis(fb.easyWholesale)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Your 50% margin</span><span className="tnum">+{formatCedis(fb.agentEarnings)}</span></div>
+                            <div className="flex justify-between text-muted"><span>easy’s 50%</span><span className="tnum">+{formatCedis(fb.easyEarnings)}</span></div>
+                            <div className="flex justify-between border-t border-border pt-0.5 font-semibold"><span>Your earnings this sale</span><span className="tnum text-brand">{formatCedis(fb.agentEarnings)}</span></div>
+                            <div className="flex justify-between text-muted"><span>Withdrawal fee</span><span className="tnum text-brand">Free ✓</span></div>
+                            <div className="flex justify-between font-semibold"><span>You receive</span><span className="tnum text-brand">{formatCedis(fb.agentTakeHome)} (full amount)</span></div>
                           </div>
                         )}
                       </div>

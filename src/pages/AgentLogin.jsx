@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import { loginAccount, resendAgentPayment } from '../lib/api.js'
+import { friendlyError } from '../lib/errors.js'
 import { AGENT_FEE, formatCedis, isValidGhPhone, normalizePhone } from '../lib/format.js'
 import { saveAgentSession, saveCustomerSession } from '../lib/store.js'
 import { isAgentHost, AGENT_ORIGIN, CUSTOMER_ORIGIN } from '../lib/host.js'
@@ -76,7 +77,7 @@ export default function AgentLogin() {
       if (err.status === 403 && /joining fee/i.test(err.message)) {
         setNeedsPayment(true) // registered but never paid → offer to complete payment
       } else {
-        setError(err.message || 'Login failed. Please try again.')
+        setError(friendlyError(err, 'Login failed. Please try again.'))
       }
       setLoading(false)
     }
@@ -91,7 +92,7 @@ export default function AgentLogin() {
       if (!data.paymentUrl) throw new Error('No payment link was returned. Please try again.')
       window.location.href = data.paymentUrl
     } catch (err) {
-      setError(err.message || 'Could not start payment. Please try again.')
+      setError(friendlyError(err, 'Could not start payment. Please try again.'))
       setLoading(false)
     }
   }

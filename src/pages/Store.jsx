@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import BundleCard from '../components/BundleCard.jsx'
+import { friendlyError } from '../lib/errors.js'
 import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import PhoneInput from '../components/PhoneInput.jsx'
 import { formatCedis, getNetwork, isValidGhPhone, normalizePhone, prettyPhone } from '../lib/format.js'
@@ -39,7 +40,7 @@ export default function Store() {
         setStoreInfo(data.store)
         setBundles(data.bundles || [])
       })
-      .catch((e) => setLoadError(e.message || 'Could not load store.'))
+      .catch((e) => setLoadError(friendlyError(e, 'Could not load store.')))
       .finally(() => setLoading(false))
   }, [slug])
 
@@ -164,7 +165,7 @@ export default function Store() {
           bundleName: selectedBundle.name,
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!data.success) throw new Error(data.error || 'Failed to initiate payment')
       const url = data.paymentUrl || data.authorization_url
       if (!url) throw new Error('No payment link returned. Please try again.')
@@ -172,7 +173,7 @@ export default function Store() {
       track('store_purchase_initiated', { slug, network, bundle: selectedBundle.name, amount: selectedBundle.sellPrice })
       window.location.href = url
     } catch (e) {
-      setSubmitError(e.message || 'Payment could not be started. Please try again.')
+      setSubmitError(friendlyError(e, 'Payment could not be started. Please try again.'))
       setSubmitting(false)
     }
   }

@@ -8,6 +8,7 @@ import NetworkPicker, { NetworkBadge } from '../components/NetworkPicker.jsx'
 import BundleCard from '../components/BundleCard.jsx'
 import Seo from '../components/Seo.jsx'
 import { fetchBundles, findPaystackUrl, initiatePurchase } from '../lib/api.js'
+import { friendlyError } from '../lib/errors.js'
 import { track } from '../lib/analytics.js'
 import { getProfile, getStoredRefCode, saveProfile } from '../lib/store.js'
 import { SITE_URL } from '../config.js'
@@ -90,7 +91,7 @@ export default function BuyData() {
       })
       .catch((e) => {
         if (id !== reqId.current) return
-        setLoadError(e.message || 'Couldn’t load bundles.')
+        setLoadError(friendlyError(e, 'Couldn’t load bundles.'))
         setBundles([])
       })
       .finally(() => {
@@ -169,7 +170,7 @@ export default function BuyData() {
       })
       window.location.href = url
     } catch (e) {
-      setSubmitError(e.message || 'Payment couldn\'t be started. Please try again.')
+      setSubmitError(friendlyError(e, 'Payment couldn’t be started. Please try again.'))
       setSubmitting(false)
     }
   }

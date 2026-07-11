@@ -1,6 +1,7 @@
 import { lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import App from './App.jsx'
+import { RouteErrorScreen } from './components/ErrorScreen.jsx'
 import Home from './pages/Home.jsx'
 import BuyData from './pages/BuyData.jsx'
 import History from './pages/History.jsx'
@@ -43,6 +44,9 @@ export const routes = [
     path: '/',
     element: <App />,
     entry: 'src/App.jsx',
+    // Branded full-screen error instead of the router's default "Unexpected
+    // Application Error!" — covers route render errors and failed lazy chunks.
+    errorElement: <RouteErrorScreen />,
     children: [
       { index: true, element: <RootRoute /> },
 

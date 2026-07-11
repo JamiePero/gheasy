@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
+import { friendlyError } from '../lib/errors.js'
 import Button from '../components/Button.jsx'
 import { getProfile, saveProfile } from '../lib/store.js'
 import { formatCedis, isValidGhPhone, normalizePhone, prettyPhone } from '../lib/format.js'
@@ -29,7 +30,7 @@ export default function MyRewards() {
 
   const fetchRewards = async (raw) => {
     const res = await fetch(`${BASE}/gheasy/referrer/${encodeURIComponent(normalizePhone(raw))}`)
-    const d = await res.json()
+    const d = await res.json().catch(() => ({}))
     if (!d.success) throw new Error(d.error || 'Could not load your rewards.')
     return d
   }
@@ -48,7 +49,7 @@ export default function MyRewards() {
       setData(d)
       saveProfile({ phone: normalizePhone(phone) })
     } catch (err) {
-      setError(err.message)
+      setError(friendlyError(err))
     } finally {
       setLoading(false)
     }
@@ -91,11 +92,11 @@ export default function MyRewards() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalizePhone(phone), network, gb: 1 }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({})).catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not redeem.')
       setRedeemMsg(d.message || 'Your data is on the way.')
       await reload()
-    } catch (e) { setRedeemMsg(e.message) } finally { setRedeeming('') }
+    } catch (e) { setRedeemMsg(friendlyError(e)) } finally { setRedeeming('') }
   }
   const redeemCash = async () => {
     setRedeeming('cash')
@@ -105,11 +106,11 @@ export default function MyRewards() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalizePhone(phone), points: cashPoints }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({})).catch(() => ({}))
       if (!d.success) throw new Error(d.error || 'Could not redeem.')
       setRedeemMsg(d.message || 'Your cash request was submitted.')
       await reload()
-    } catch (e) { setRedeemMsg(e.message) } finally { setRedeeming('') }
+    } catch (e) { setRedeemMsg(friendlyError(e)) } finally { setRedeeming('') }
   }
 
   return (

@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop.jsx'
 import RouteTracker from './components/RouteTracker.jsx'
 import WhatsAppButton from './components/WhatsAppButton.jsx'
 import SplashScreen from './components/SplashScreen.jsx'
+import ErrorScreen from './components/ErrorScreen.jsx'
 import DomainGuard from './components/DomainGuard.jsx'
 import { AgentHeader, AgentBottomNav } from './components/AgentChrome.jsx'
 import { isAgentHost } from './lib/host.js'
@@ -42,6 +43,38 @@ export default function App() {
   const agentHost = isAgentHost()
   const [showSplash, setShowSplash] = useState(false)
   const [maint, setMaint] = useState(null)
+  const [fatalError, setFatalError] = useState(false)
+
+  // Global catch-all for errors that would otherwise surface as raw crashes:
+  // JSON parse failures (an API returning an HTML error page) and failed lazy
+  // chunk imports (stale bundle after a redeploy). DELIBERATELY narrow — a
+  // background fetch failing (offline analytics, ads) must NOT nuke the app;
+  // user-facing fetches already show their own inline errors.
+  useEffect(() => {
+    const isFatal = (reason) => {
+      if (reason instanceof SyntaxError) return true
+      const msg = String(reason?.message || reason || '')
+      return /unexpected token|not valid json|json\.parse|dynamically imported module|importing a module script/i.test(msg)
+    }
+    const onRejection = (e) => {
+      if (isFatal(e.reason)) {
+        console.error('[easy] fatal rejection:', e.reason)
+        setFatalError(true)
+      }
+    }
+    const onError = (e) => {
+      if (isFatal(e.error || e.message)) {
+        console.error('[easy] fatal error:', e.error || e.message)
+        setFatalError(true)
+      }
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    window.addEventListener('error', onError)
+    return () => {
+      window.removeEventListener('unhandledrejection', onRejection)
+      window.removeEventListener('error', onError)
+    }
+  }, [])
 
   // Cross-subdomain login handoff. The unified login can produce an account
   // whose session belongs on the OTHER origin (agent on agent.gheasy.com,
@@ -125,6 +158,14 @@ export default function App() {
       cancelled = true
     }
   }, [])
+
+  if (fatalError) {
+    return (
+      <ThemeProvider>
+        <ErrorScreen autoRetry />
+      </ThemeProvider>
+    )
+  }
 
   if (maint) {
     return (
