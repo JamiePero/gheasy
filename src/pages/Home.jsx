@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import AdCarousel from '../components/AdCarousel.jsx'
+import PrizeTicker from '../components/PrizeTicker.jsx'
 import InstallSection from '../components/InstallSection.jsx'
 import NetworkLogo from '../components/NetworkLogo.jsx'
 import Avatar from '../components/Avatar.jsx'
@@ -292,6 +293,10 @@ export default function Home() {
         <div className="mt-5">
           <AdCarousel />
         </div>
+
+        {/* Recent easy Jump winners — thin neon marquee. Renders nothing (and
+            leaves no gap) until there's at least one prize in the log. */}
+        <PrizeTicker className="mt-3" />
 
         {/* Quick-buy hero card with rotating tagline */}
         <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-card">

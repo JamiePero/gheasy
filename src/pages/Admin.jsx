@@ -1275,6 +1275,103 @@ function WheelAdmin({ token, onUnauth }) {
   )
 }
 
+// ── easy Jump admin — today's board, prize log, lives outstanding + manual award ──
+function JumpAdmin({ token, onUnauth }) {
+  const { data, error, loading, reload } = useAdminData('/gheasy/admin/game/overview', token, onUnauth)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const awardNow = async () => {
+    if (!window.confirm("Award today's prizes now? Top 3 get 1GB / 500MB / 100MB credited to their wallet. Already-awarded places are skipped (idempotent), and each winner gets an SMS.")) return
+    setBusy(true)
+    setMsg('')
+    try {
+      const d = await adminFetch('/gheasy/admin/game/award-prizes', { token, method: 'POST', onUnauth, body: {} })
+      const n = d.awarded?.length || 0
+      setMsg(`Done — ${n} prize${n === 1 ? '' : 's'} awarded for ${d.date}.`)
+      await reload()
+    } catch (e) {
+      setMsg(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (loading) return <Card className="max-w-xl"><p className="text-sm text-muted">Loading easy Jump…</p></Card>
+  const board = data?.leaderboard || []
+  const log = data?.prizeLog || []
+  const medal = (place) => (place === 1 ? '🥇' : place === 2 ? '🥈' : place === 3 ? '🥉' : `#${place}`)
+
+  return (
+    <Card className="max-w-xl">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">easy Games — jump</h2>
+          <p className="mt-0.5 text-xs text-muted">Daily leaderboard — top 3 win data at midnight UTC (23:59 cron).</p>
+        </div>
+        <button
+          onClick={awardNow}
+          disabled={busy}
+          className="shrink-0 rounded-full border border-brand/50 px-4 py-2 text-sm font-semibold text-brand disabled:opacity-50"
+        >
+          {busy ? '…' : 'Award today’s prizes now'}
+        </button>
+      </div>
+      <Notice error={error} />
+      {msg && <p className="mt-2 rounded-xl bg-brand/10 p-2.5 text-xs text-brand">{msg}</p>}
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Stat label="Players today" value={board.length} sub={data?.date} />
+        <Stat tone="brand" label="Lives outstanding" value={data?.totalLivesOutstanding ?? 0} sub="3 per purchase — never expire" />
+      </div>
+
+      <p className="mt-5 text-sm font-semibold">Today’s leaderboard ({data?.date})</p>
+      {board.length === 0 ? (
+        <p className="mt-2 text-xs text-muted">No scores yet today.</p>
+      ) : (
+        <div className="mt-2 max-h-80 overflow-y-auto rounded-2xl border border-border">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-card text-left text-[11px] uppercase tracking-wide text-muted">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Rank</th>
+                <th className="px-3 py-2 font-semibold">Player</th>
+                <th className="px-3 py-2 font-semibold">Phone</th>
+                <th className="px-3 py-2 text-right font-semibold">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {board.map((e) => (
+                <tr key={e.rank} className="border-t border-border/60">
+                  <td className="px-3 py-2">{medal(e.rank)}</td>
+                  <td className="px-3 py-2 font-medium">{e.displayName}</td>
+                  <td className="px-3 py-2 text-muted tnum">{e.phone}</td>
+                  <td className="px-3 py-2 text-right font-bold tnum">{e.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-5 text-sm font-semibold">Prize log (last 30 days)</p>
+      {log.length === 0 ? (
+        <p className="mt-2 text-xs text-muted">No prizes awarded yet.</p>
+      ) : (
+        <div className="mt-2 max-h-80 space-y-1.5 overflow-y-auto">
+          {log.map((p, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2 text-xs">
+              <span>
+                {medal(p.place)} <b>{p.displayName}</b> — {p.prize}
+              </span>
+              <span className="shrink-0 text-muted tnum">{p.date}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 // ── Admin OTP login (reuses /admin/send-otp + /admin/verify-otp) ──
 function AdminLogin({ onAuthed }) {
   const [step, setStep] = useState('email')
@@ -1411,7 +1508,12 @@ export default function Admin() {
             {tab === 'orders' && <Orders {...sectionProps} />}
             {tab === 'referrals' && <Referrals {...sectionProps} />}
             {tab === 'ads' && <Ads {...sectionProps} />}
-            {tab === 'games' && <WheelAdmin {...sectionProps} />}
+            {tab === 'games' && (
+              <div className="space-y-6">
+                <WheelAdmin {...sectionProps} />
+                <JumpAdmin {...sectionProps} />
+              </div>
+            )}
             {tab === 'maintenance' && (
               <div className="space-y-6">
                 <Maintenance {...sectionProps} />

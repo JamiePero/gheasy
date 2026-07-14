@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.jsx'
 import Button from '../components/Button.jsx'
 import Seo from '../components/Seo.jsx'
+import EasyJump from '../components/EasyJump.jsx'
 import { getAgentSession, getCustomerSession } from '../lib/store.js'
 import { friendlyError } from '../lib/errors.js'
 import { normalizePhone, prettyPhone } from '../lib/format.js'
-import { AlertIcon, GiftIcon } from '../components/icons.jsx'
+import { AlertIcon, CheckIcon, GiftIcon } from '../components/icons.jsx'
 
 const BASE = 'https://api.getflashx.com'
 
@@ -285,6 +287,10 @@ export default function Games() {
     }
   }, [])
 
+  // Which game's content is revealed below the selector cards. Nothing is
+  // pre-selected by design — the page opens on just the two cards.
+  const [selectedGame, setSelectedGame] = useState(null)
+
   const [me, setMe] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -373,72 +379,144 @@ export default function Games() {
     }
   }
 
-  // ── Still checking the client-side session (first paint / SSG) ──
-  if (!checked) {
-    return (
-      <Page className="wrap-app pb-16 pt-6">
-        <Seo title="easy Games — Spin & Win Free Data | easy" description="Every data purchase on easy earns a free spin. Win up to 1GB — free to play, prizes go straight to your number." />
-        <h1 className="font-display text-2xl font-bold tracking-tight">easy Games</h1>
-        <p className="mt-1 text-sm text-muted">Spin the wheel, win free data. Every purchase earns a spin.</p>
-        <div className="pointer-events-none mt-6 opacity-90">
-          <Wheel rotation={18} spinning={false} />
-        </div>
-        <p className="mt-8 text-center text-sm text-muted">Loading…</p>
-      </Page>
-    )
-  }
-
-  // ── Logged out — pitch. No login flow lives on this page: we just point to
-  // the account area with a plain router link (nothing that can break routing).
-  // A customer/agent logged in anywhere app-wide sets `auth` above, so they
-  // never reach this branch. ──
-  if (!auth) {
-    return (
-      <Page className="wrap-app pb-16 pt-6">
-        <Seo title="easy Games — Spin & Win Free Data | easy" description="Every data purchase on easy earns a free spin. Win up to 1GB — free to play, prizes go straight to your number." />
-        <h1 className="font-display text-2xl font-bold tracking-tight">easy Games</h1>
-        <p className="mt-1 text-sm text-muted">Spin the wheel, win free data. Every purchase earns a spin.</p>
-        <div className="pointer-events-none mt-6 opacity-90">
-          <Wheel rotation={18} spinning={false} />
-        </div>
-        <div className="mt-6 rounded-3xl border border-brand/30 bg-brand/[0.06] p-5 text-center shadow-card">
-          <GiftIcon className="mx-auto h-7 w-7 text-brand" />
-          <p className="mt-2 text-sm font-bold">Log in to play</p>
-          <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
-            easy Games is for easy accounts — free to join. Log in to the app and every data purchase earns 1 free spin, with prizes going to your own number.
-          </p>
-          <Button to="/register" className="mt-4 w-full">Create a free account</Button>
-          <p className="mt-3 text-xs text-muted">
-            Already have an account?{' '}
-            <Link to="/login" className="font-semibold text-brand">Log in</Link>
-          </p>
-        </div>
-      </Page>
-    )
-  }
-
   const spins = me?.spins ?? 0
   const acc = me?.accumulatedMB ?? 0
   const target = me?.redeemAtMB ?? 1000
   const pct = Math.min(100, Math.round((acc / target) * 100))
 
+  const games = [
+    { id: 'wheel', name: 'easy Wheel' },
+    { id: 'jump', name: 'easy Jump' },
+  ]
+
   return (
     <Page className="wrap-app pb-16 pt-6">
-      <Seo title="easy Games — Spin & Win Free Data | easy" noindex />
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight">easy Games</h1>
-          <p className="mt-0.5 text-sm text-muted">Spin free. Win data. No catch.</p>
-        </div>
-        <span className="rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-bold text-brand">
-          {spins} spin{spins === 1 ? '' : 's'}
-        </span>
+      <Seo title="easy Games — Spin & Win Free Data | easy" description="Play easy Wheel and easy Jump. Every data purchase earns free plays — win real data bundles sent straight to your number." />
+      <h1 className="font-display text-2xl font-bold tracking-tight">easy Games</h1>
+      <p className="mt-1 text-sm text-muted">Pick a game. Win free data.</p>
+
+      {/* ── Game selector — nothing pre-selected; tapping a card reveals that
+          game's content below. Styled to match the buy-page network cards. ── */}
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[360px]:grid-cols-2" role="radiogroup" aria-label="Choose a game">
+        {games.map((g) => {
+          const active = selectedGame === g.id
+          return (
+            <motion.button
+              key={g.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              aria-label={g.name}
+              onClick={() => setSelectedGame(g.id)}
+              whileTap={{ scale: 0.96 }}
+              className={`relative overflow-hidden rounded-3xl border-2 bg-[#0a1f0e] p-3 transition-all duration-200 hover:shadow-[0_0_26px_rgba(0,255,136,0.4)] ${
+                active
+                  ? 'border-[#00FF88]/70 shadow-[0_0_28px_rgba(0,255,136,0.5)] ring-2 ring-brand ring-offset-2 ring-offset-bg'
+                  : 'border-[#14532d] shadow-[0_10px_26px_-16px_rgba(0,255,136,0.45)]'
+              }`}
+            >
+              <div className="grid h-[120px] place-items-center rounded-2xl border border-[#2b4a35]/60 bg-[#16241b]">
+                <span className="text-xs font-medium text-[#7ba88a]">Graphic coming soon</span>
+              </div>
+              <p className="mt-3 text-center font-display text-base font-bold text-white">{g.name}</p>
+              <AnimatePresence>
+                {active && (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+                    className="absolute right-2.5 top-2.5 grid h-6 w-6 place-items-center rounded-full bg-white text-brand shadow-md"
+                  >
+                    <CheckIcon className="h-4 w-4" strokeWidth={3} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+          )
+        })}
       </div>
 
-      {loading && <p className="mt-8 text-center text-sm text-muted">Loading your spins…</p>}
+      {/* ── easy Wheel — the existing spin-wheel experience, untouched, now
+          revealed by its selector card. ── */}
+      {selectedGame === 'wheel' && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          {!checked ? (
+            <>
+              <div className="pointer-events-none mt-6 opacity-90">
+                <Wheel rotation={18} spinning={false} />
+              </div>
+              <p className="mt-8 text-center text-sm text-muted">Loading…</p>
+            </>
+          ) : !auth ? (
+            <>
+              <div className="pointer-events-none mt-6 opacity-90">
+                <Wheel rotation={18} spinning={false} />
+              </div>
+              <div className="mt-6 rounded-3xl border border-brand/30 bg-brand/[0.06] p-5 text-center shadow-card">
+                <GiftIcon className="mx-auto h-7 w-7 text-brand" />
+                <p className="mt-2 text-sm font-bold">Log in to play</p>
+                <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
+                  easy Games is for easy accounts — free to join. Log in to the app and every data purchase earns 1 free spin, with prizes going to your own number.
+                </p>
+                <Button to="/register" className="mt-4 w-full">Create a free account</Button>
+                <p className="mt-3 text-xs text-muted">
+                  Already have an account?{' '}
+                  <Link to="/login" className="font-semibold text-brand">Log in</Link>
+                </p>
+              </div>
+            </>
+          ) : (
+            // Called as a plain function (not <WheelContent />) so the wheel's
+            // DOM persists across re-renders — a nested component type would
+            // remount each render and break the spin CSS transition.
+            WheelContent()
+          )}
+        </motion.div>
+      )}
 
-      {!loading && (
-        <>
+      {/* ── easy Jump — lives, leaderboard and the game itself. ── */}
+      {selectedGame === 'jump' && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          {!checked ? (
+            <p className="mt-8 text-center text-sm text-muted">Loading…</p>
+          ) : !auth ? (
+            <div className="mt-6 rounded-3xl border border-brand/30 bg-brand/[0.06] p-5 text-center shadow-card">
+              <GiftIcon className="mx-auto h-7 w-7 text-brand" />
+              <p className="mt-2 text-sm font-bold">Log in to play</p>
+              <p className="mx-auto mt-1 max-w-xs text-xs text-muted">
+                easy Jump is for easy accounts — free to join. Every data purchase earns 3 lives, and the top 3 scores each day win real data prizes.
+              </p>
+              <Button to="/register" className="mt-4 w-full">Create a free account</Button>
+              <p className="mt-3 text-xs text-muted">
+                Already have an account?{' '}
+                <Link to="/login" className="font-semibold text-brand">Log in</Link>
+              </p>
+            </div>
+          ) : (
+            <EasyJump auth={auth} />
+          )}
+        </motion.div>
+      )}
+    </Page>
+  )
+
+  // The authed wheel UI, exactly as before — pulled into a closure so the
+  // main return above stays readable. Uses the component's own state.
+  function WheelContent() {
+    return (
+      <>
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">Spin free. Win data. No catch.</p>
+          <span className="rounded-full border border-brand/40 bg-brand/10 px-3.5 py-2 text-sm font-bold text-brand">
+            {spins} spin{spins === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        {loading && <p className="mt-8 text-center text-sm text-muted">Loading your spins…</p>}
+
+        {!loading && (
+          <>
           {me?.paused && (
             <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-3.5 text-sm">
               <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
@@ -512,8 +590,9 @@ export default function Games() {
               <p className="mt-3 text-xs text-muted">Reach {target}MB to redeem a real 1GB bundle to your own number.</p>
             )}
           </div>
-        </>
-      )}
-    </Page>
-  )
+          </>
+        )}
+      </>
+    )
+  }
 }
