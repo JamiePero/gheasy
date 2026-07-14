@@ -415,7 +415,8 @@ export default function Games() {
                   : 'border-[#14532d] shadow-[0_10px_26px_-16px_rgba(0,255,136,0.45)]'
               }`}
             >
-              <div className="grid h-[120px] place-items-center rounded-2xl border border-[#2b4a35]/60 bg-[#16241b]">
+              {/* Placeholder graphic — exactly 160×120px (@2x asset: 320×240) */}
+              <div className="mx-auto grid h-[120px] w-[160px] place-items-center rounded-2xl border border-[#2b4a35]/60 bg-[#16241b]">
                 <span className="text-xs font-medium text-[#7ba88a]">Graphic coming soon</span>
               </div>
               <p className="mt-3 text-center font-display text-base font-bold text-white">{g.name}</p>

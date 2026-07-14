@@ -51,6 +51,7 @@ export default function EasyJump({ auth }) {
   const [nickDismissed, setNickDismissed] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [starting, setStarting] = useState(false)
+  const [buying, setBuying] = useState(false)
   const [result, setResult] = useState(null)
   const [toast, setToast] = useState('')
   const [countdown, setCountdown] = useState(() => fmtCountdown(msToMidnightUTC()))
@@ -165,6 +166,24 @@ export default function EasyJump({ auth }) {
     [auth, status, loadStatus, loadBoard],
   )
 
+  // ₵1 lives pack — redirect to Paystack checkout; the webhook grants the lives
+  // and the callback lands back on /games, where status reloads on mount.
+  const buyLives = async () => {
+    if (buying) return
+    setBuying(true)
+    setToast('')
+    try {
+      const res = await fetch(`${BASE}/gheasy/game/buy-lives`, { method: 'POST', headers: auth.headers })
+      const d = await res.json().catch(() => ({}))
+      if (!d.success || !d.paymentUrl) throw new Error(d.error || 'Could not start the payment.')
+      window.location.href = d.paymentUrl
+      // keep `buying` true — we're leaving the page
+    } catch (e) {
+      setToast(friendlyError(e))
+      setBuying(false)
+    }
+  }
+
   const startGame = async () => {
     if (starting) return
     setStarting(true)
@@ -271,6 +290,16 @@ export default function EasyJump({ auth }) {
             </span>
           </div>
         )}
+
+        {/* ₵1 lives pack — deliberately quieter than the PLAY button */}
+        <button
+          onClick={buyLives}
+          disabled={buying}
+          className="mt-3 w-full rounded-2xl border bg-transparent py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50"
+          style={{ borderColor: 'rgba(0,255,136,0.5)', color: NEON }}
+        >
+          {buying ? 'Starting payment…' : '🎮 Buy 3 lives — ₵1.00'}
+        </button>
       </div>
 
       {/* ── Nickname prompt (only when there's no registered name and no nickname) ── */}
