@@ -11,6 +11,8 @@ import MyRewards from './pages/MyRewards.jsx'
 import CustomerRegister from './pages/CustomerRegister.jsx'
 import Account from './pages/Account.jsx'
 import Games from './pages/Games.jsx'
+import GamesWheel from './pages/GamesWheel.jsx'
+import GamesJump from './pages/GamesJump.jsx'
 // Code-split (G1): the agent & admin surfaces are client-only, behind auth, and
 // off the customer hot path — lazy-load them so they don't weigh down the main
 // customer bundle. Suspense boundary lives around the <Outlet/> in App.jsx.
@@ -68,6 +70,8 @@ export const routes = [
       { path: 'register', element: <CustomerRegister /> },
       { path: 'account', element: <Account /> },
       { path: 'games', element: <Games /> },
+      { path: 'games/wheel', element: <GamesWheel /> },
+      { path: 'games/jump', element: <GamesJump /> },
       { path: 'more', element: <More /> },
       { path: 'about', element: <About /> },
       { path: 'admin', element: <Admin /> },

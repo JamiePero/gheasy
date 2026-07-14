@@ -29,6 +29,62 @@ function BodyPortal({ children }) {
   return createPortal(children, document.body)
 }
 
+// Full-screen INLINE game (no iframe — the engine module renders straight into
+// this document, so nothing can white-screen on serving/rewrites). The game
+// code is lazy-loaded from src/game/easyJump.js (generated from
+// public/easy_jump.html by scripts/extract-easy-jump.mjs). The ✕ sits at
+// z-[10000] — above the canvas, the touch layer (z-4) and the game's own
+// overlay (z-10) — so it is reachable at all times.
+function GameOverlay({ onEnd, onClose }) {
+  const [mod, setMod] = useState(null)
+  const [loadError, setLoadError] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    import('../game/easyJump.js')
+      .then((m) => { if (alive) setMod(m) })
+      .catch(() => { if (alive) setLoadError(true) })
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    if (!mod) return
+    window.__easyGameEnd = onEnd
+    const cleanup = mod.bootEasyJump()
+    // One life = one run: skip the game's own PLAY gate so the life spent at
+    // /game/start goes straight into a live game. The host closes the overlay
+    // on death, so the game's PLAY AGAIN can never grant a free run.
+    document.getElementById('playBtn')?.click()
+    return () => {
+      window.__easyGameEnd = undefined
+      cleanup()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mod])
+
+  return (
+    // The game CSS rescopes the game's html,body rule onto #easyJumpHost, so
+    // this div provides the game's background + centering once loaded.
+    <div id="easyJumpHost" className="fixed inset-0 z-[999] bg-[#050d09]">
+      {mod && <style>{mod.GAME_CSS}</style>}
+      {mod && <div className="contents" dangerouslySetInnerHTML={{ __html: mod.GAME_HTML }} />}
+      {!mod && (
+        <p className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-sm font-semibold" style={{ color: NEON }}>
+          {loadError ? 'Could not load the game — check your connection and try again.' : 'Loading game…'}
+        </p>
+      )}
+      <button
+        onClick={onClose}
+        aria-label="Close game"
+        className="fixed right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
+        style={{ zIndex: 10000 }}
+      >
+        <XIcon className="h-6 w-6" />
+      </button>
+    </div>
+  )
+}
+
 function RankBadge({ rank }) {
   const color = rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : rank === 3 ? '#CD7F32' : null
   if (color) {
@@ -56,7 +112,6 @@ export default function EasyJump({ auth }) {
   const [toast, setToast] = useState('')
   const [countdown, setCountdown] = useState(() => fmtCountdown(msToMidnightUTC()))
 
-  const iframeRef = useRef(null)
   const tokenRef = useRef(null)
   const submittingRef = useRef(false)
 
@@ -152,6 +207,7 @@ export default function EasyJump({ auth }) {
         /* still show the result card even if the submit failed */
       }
       tokenRef.current = null
+      window.__easyGameToken = undefined
       setPlaying(false)
       setResult((prev) => ({
         score,
@@ -198,6 +254,7 @@ export default function EasyJump({ auth }) {
         return
       }
       tokenRef.current = d.token
+      window.__easyGameToken = d.token
       submittingRef.current = false
       setStatus((s) => (s ? { ...s, lives: d.livesRemaining } : s))
       setPlaying(true)
@@ -208,24 +265,10 @@ export default function EasyJump({ auth }) {
     }
   }
 
-  // Bridge the host ↔ game once the overlay iframe has loaded, then auto-start
-  // so the life just spent goes straight into a live game (no second gate).
-  const onIframeLoad = () => {
-    const win = iframeRef.current?.contentWindow
-    if (!win) return
-    try {
-      win.__easyGameToken = tokenRef.current
-      win.__easyGameEnd = (score) => handleGameEnd(score)
-      const btn = win.document?.getElementById('playBtn')
-      if (btn) btn.click()
-    } catch (e) {
-      /* same-origin so this should not throw; the game's own PLAY still works */
-    }
-  }
-
   const closeOverlay = () => {
     setPlaying(false)
     tokenRef.current = null
+    window.__easyGameToken = undefined
     submittingRef.current = false
     // The life was already spent at start; refresh so the counter is accurate.
     loadStatus()
@@ -446,26 +489,11 @@ export default function EasyJump({ auth }) {
         </div>
       )}
 
-      {/* ── Full-screen game overlay ── */}
+      {/* ── Full-screen game overlay — inline game, covers everything
+          (including the page's back bar); ✕ stays reachable at z-10000 ── */}
       {playing && (
         <BodyPortal>
-          <div className="fixed inset-0 z-[999] bg-black">
-            <button
-              onClick={closeOverlay}
-              aria-label="Close game"
-              className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur"
-            >
-              <XIcon className="h-6 w-6" />
-            </button>
-            <iframe
-              ref={iframeRef}
-              src="/easy_jump.html"
-              title="easy Jump"
-              onLoad={onIframeLoad}
-              className="h-full w-full border-0"
-              allow="autoplay; fullscreen"
-            />
-          </div>
+          <GameOverlay onEnd={handleGameEnd} onClose={closeOverlay} />
         </BodyPortal>
       )}
 
