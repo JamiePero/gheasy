@@ -8,8 +8,8 @@ import Seo from '../components/Seo.jsx'
 // here. Cards match the buy-page network selector styling: dark green, neon
 // glow on hover, 160×120 placeholder graphic, name below in white bold.
 const GAMES = [
-  { id: 'wheel', name: 'easy Wheel', to: '/games/wheel', img: '/easy_wheel_card.png' },
-  { id: 'jump', name: 'easy Jump', to: '/games/jump', img: '/easy_jump_card.png' },
+  { id: 'wheel', name: 'easy Wheel', to: '/games/wheel', img: '/easy_wheel_card.webp' },
+  { id: 'jump', name: 'easy Jump', to: '/games/jump', img: '/easy_jump_card.webp' },
 ]
 
 export default function Games() {
