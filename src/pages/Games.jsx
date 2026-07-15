@@ -8,8 +8,11 @@ import Seo from '../components/Seo.jsx'
 // here. Cards match the buy-page network selector styling: dark green, neon
 // glow on hover, 160×120 placeholder graphic, name below in white bold.
 const GAMES = [
-  { id: 'wheel', name: 'easy Wheel', to: '/games/wheel', img: '/easy_wheel_card.webp' },
-  { id: 'jump', name: 'easy Jump', to: '/games/jump', img: '/easy_jump_card.webp' },
+  // wheel art is native 4:3 → cover fills the box edge-to-edge with no crop.
+  { id: 'wheel', name: 'easy Wheel', to: '/games/wheel', img: '/easy_wheel_card.webp', fit: 'cover' },
+  // jump art is 16:9 with its headline on the left — cover would crop the
+  // text, so it letterboxes (contain + dark bars that blend with the art).
+  { id: 'jump', name: 'easy Jump', to: '/games/jump', img: '/easy_jump_card.webp', fit: 'contain' },
 ]
 
 export default function Games() {
@@ -40,7 +43,9 @@ export default function Games() {
               src={g.img}
               alt=""
               draggable="false"
-              className="mx-auto h-[120px] w-[160px] rounded-2xl object-cover"
+              className={`mx-auto h-[120px] w-[160px] rounded-2xl bg-[#050d09] ${
+                g.fit === 'contain' ? 'object-contain' : 'object-cover'
+              }`}
             />
             <p className="mt-3 text-center font-display text-base font-bold text-white">{g.name}</p>
           </motion.button>
